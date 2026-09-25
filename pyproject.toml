@@ -1,0 +1,21 @@
+[project]
+name = "comfyui-alchemicasampler"
+description = "Calibrated sampler for Krea 2 Turbo: schedules measured on your checkpoint, two-phase prompts, composition previews, a prompt enhancer that uses Krea 2's own text encoder, NAG (negative prompt at cfg 1) and PAG/SEG. Idea: AlchemicaMente · code: Claude (Anthropic)."
+version = "1.0.0"
+license = { file = "LICENSE" }
+readme = "README.md"
+authors = [{ name = "AlchemicaMente" }]
+classifiers = ["Operating System :: OS Independent"]
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/Nessuno76/ComfyUI-AlchemicaSampler"
+Documentation = "https://github.com/Nessuno76/ComfyUI-AlchemicaSampler#readme"
+"Bug Tracker" = "https://github.com/Nessuno76/ComfyUI-AlchemicaSampler/issues"
+
+[tool.comfy]
+PublisherId = "alchemicamente"
+DisplayName = "⚗ AlchemicaSampler"
+Icon = "https://raw.githubusercontent.com/Nessuno76/ComfyUI-AlchemicaSampler/main/assets/icon_400.png"
+Banner = "https://raw.githubusercontent.com/Nessuno76/ComfyUI-AlchemicaSampler/main/assets/banner_21x9.png"
+requires-comfyui = ">=0.36.0"

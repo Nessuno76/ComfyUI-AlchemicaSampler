@@ -1,0 +1,735 @@
+{
+ "id": "KREA2_IBRIDO",
+ "revision": 0,
+ "last_node_id": 13,
+ "last_link_id": 12,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "UNETLoader",
+   "pos": [
+    40,
+    40
+   ],
+   "size": [
+    400,
+    82
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      1
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "UNETLoader"
+   },
+   "widgets_values": [
+    "krea2_turbo_nvfp4.safetensors",
+    "default"
+   ],
+   "title": "1) COMPOSITION"
+  },
+  {
+   "id": 2,
+   "type": "UNETLoader",
+   "pos": [
+    40,
+    160
+   ],
+   "size": [
+    400,
+    82
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      3
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "UNETLoader"
+   },
+   "widgets_values": [
+    "krea2_turbo_nvfp4.safetensors",
+    "default"
+   ],
+   "title": "2) REFINEMENT"
+  },
+  {
+   "id": 3,
+   "type": "CLIPLoader",
+   "pos": [
+    40,
+    280
+   ],
+   "size": [
+    400,
+    106
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "CLIP",
+     "type": "CLIP",
+     "links": [
+      2
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPLoader"
+   },
+   "widgets_values": [
+    "qwen3vl_4b_fp8_scaled.safetensors",
+    "krea2",
+    "default"
+   ]
+  },
+  {
+   "id": 4,
+   "type": "VAELoader",
+   "pos": [
+    40,
+    420
+   ],
+   "size": [
+    400,
+    58
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "VAE",
+     "type": "VAE",
+     "links": [
+      10
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAELoader"
+   },
+   "widgets_values": [
+    "qwen_image_vae.safetensors"
+   ]
+  },
+  {
+   "id": 5,
+   "type": "AlchemicaLoraStack",
+   "pos": [
+    480,
+    40
+   ],
+   "size": [
+    420,
+    420
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 1
+    },
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 2
+    }
+   ],
+   "outputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "links": [
+      5
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "links": [
+      4
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "riepilogo",
+     "type": "STRING",
+     "links": null,
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "AlchemicaLoraStack"
+   },
+   "widgets_values": [
+    "(nessuna)",
+    1.0,
+    "(nessuna)",
+    1.0,
+    "(nessuna)",
+    1.0,
+    "(nessuna)",
+    1.0,
+    "(nessuna)",
+    1.0,
+    "(nessuna)",
+    1.0,
+    1.0
+   ],
+   "title": "⚗ LoRA - composition",
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 6,
+   "type": "AlchemicaLoraStack",
+   "pos": [
+    480,
+    500
+   ],
+   "size": [
+    420,
+    420
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 3
+    },
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "links": [
+      6
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "links": null,
+     "slot_index": 1
+    },
+    {
+     "name": "riepilogo",
+     "type": "STRING",
+     "links": null,
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "AlchemicaLoraStack"
+   },
+   "widgets_values": [
+    "(nessuna)",
+    1.0,
+    "(nessuna)",
+    1.0,
+    "(nessuna)",
+    1.0,
+    "(nessuna)",
+    1.0,
+    "(nessuna)",
+    1.0,
+    "(nessuna)",
+    1.0,
+    1.0
+   ],
+   "title": "⚗ LoRA - refinement",
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 7,
+   "type": "CLIPTextEncode",
+   "pos": [
+    480,
+    960
+   ],
+   "size": [
+    420,
+    240
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 4
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      7
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPTextEncode"
+   },
+   "widgets_values": [
+    "Documentary photograph of a chemistry teacher in a white lab coat standing at a laboratory bench, waist-up, holding a 250 ml beaker of blue liquid and looking at the camera, three students blurred in the background, overcast daylight through tall windows, 35 mm lens, natural skin texture, realistic fabric wrinkles."
+   ]
+  },
+  {
+   "id": 8,
+   "type": "AlchemicaResolution",
+   "pos": [
+    480,
+    1240
+   ],
+   "size": [
+    300,
+    110
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "latent",
+     "type": "LATENT",
+     "links": [
+      8
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "width",
+     "type": "INT",
+     "links": null,
+     "slot_index": 1
+    },
+    {
+     "name": "height",
+     "type": "INT",
+     "links": null,
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "AlchemicaResolution"
+   },
+   "widgets_values": [
+    "2:3",
+    4.0,
+    1
+   ],
+   "title": "⚗ Resolution"
+  },
+  {
+   "id": 9,
+   "type": "AlchemicaKrea",
+   "pos": [
+    960,
+    40
+   ],
+   "size": [
+    400,
+    300
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 5
+    },
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 7
+    },
+    {
+     "name": "latent_image",
+     "type": "LATENT",
+     "link": 8
+    },
+    {
+     "name": "negative",
+     "type": "CONDITIONING",
+     "link": null
+    },
+    {
+     "name": "modello_rifinitura",
+     "type": "MODEL",
+     "link": 6
+    },
+    {
+     "name": "opts",
+     "type": "ALCHEMICA_OPTS",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "latent",
+     "type": "LATENT",
+     "links": [
+      9
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "grafico_sigma",
+     "type": "IMAGE",
+     "links": null,
+     "slot_index": 1
+    },
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [
+      12
+     ],
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "AlchemicaKrea"
+   },
+   "widgets_values": [
+    12345,
+    "fixed",
+    "(auto)",
+    "equilibrato",
+    true,
+    -1.0,
+    0.12,
+    0.6,
+    1.0
+   ],
+   "title": "⚗ AlchemicaKrea - hybrid",
+   "color": "#253",
+   "bgcolor": "#364"
+  },
+  {
+   "id": 10,
+   "type": "VAEDecodeTiled",
+   "pos": [
+    960,
+    380
+   ],
+   "size": [
+    300,
+    150
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "samples",
+     "type": "LATENT",
+     "link": 9
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 10
+    }
+   ],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      11
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAEDecodeTiled"
+   },
+   "widgets_values": [
+    512,
+    64,
+    64,
+    8
+   ]
+  },
+  {
+   "id": 11,
+   "type": "SaveImage",
+   "pos": [
+    1400,
+    40
+   ],
+   "size": [
+    560,
+    760
+   ],
+   "flags": {},
+   "order": 10,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 11
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveImage"
+   },
+   "widgets_values": [
+    "ALCHEMICA/IBRIDO"
+   ],
+   "title": "⚗ FINAL"
+  },
+  {
+   "id": 12,
+   "type": "PreviewAny",
+   "pos": [
+    960,
+    570
+   ],
+   "size": [
+    400,
+    220
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "source",
+     "type": "*",
+     "link": 12
+    }
+   ],
+   "outputs": [
+    {
+     "name": "STRING",
+     "type": "STRING",
+     "links": null,
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PreviewAny"
+   },
+   "widgets_values": [],
+   "title": "report"
+  },
+  {
+   "id": 13,
+   "type": "Note",
+   "pos": [
+    40,
+    520
+   ],
+   "size": [
+    420,
+    380
+   ],
+   "flags": {},
+   "order": 12,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "Note"
+   },
+   "widgets_values": [
+    "⚗ HYBRID + LoRA\n\nComposition: first model (pose, body, framing) with ITS LoRA stack.\nRefinement: second model (skin, hair, fabric) with its own.\n\nThe text goes through the COMPOSITION stack: that one decides the scene.\nA style LoRA belongs on composition, a skin/detail LoRA on refinement.\n\nThe (auto) profile is the one of the composition model.\nCareful: a LoRA trained on base Krea 2 may behave oddly on a fine-tune,\nand vice versa. Try them one at a time."
+   ],
+   "title": "⚗ AlchemicaMente · notes"
+  }
+ ],
+ "links": [
+  [
+   1,
+   1,
+   0,
+   5,
+   0,
+   "MODEL"
+  ],
+  [
+   2,
+   3,
+   0,
+   5,
+   1,
+   "CLIP"
+  ],
+  [
+   3,
+   2,
+   0,
+   6,
+   0,
+   "MODEL"
+  ],
+  [
+   4,
+   5,
+   1,
+   7,
+   0,
+   "CLIP"
+  ],
+  [
+   5,
+   5,
+   0,
+   9,
+   0,
+   "MODEL"
+  ],
+  [
+   6,
+   6,
+   0,
+   9,
+   4,
+   "MODEL"
+  ],
+  [
+   7,
+   7,
+   0,
+   9,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   8,
+   8,
+   0,
+   9,
+   2,
+   "LATENT"
+  ],
+  [
+   9,
+   9,
+   0,
+   10,
+   0,
+   "LATENT"
+  ],
+  [
+   10,
+   4,
+   0,
+   10,
+   1,
+   "VAE"
+  ],
+  [
+   11,
+   10,
+   0,
+   11,
+   0,
+   "IMAGE"
+  ],
+  [
+   12,
+   9,
+   2,
+   12,
+   0,
+   "STRING"
+  ]
+ ],
+ "groups": [
+  {
+   "id": 1,
+   "title": "I DUE MODELLI E LE LORO LORA",
+   "bounding": [
+    20,
+    -30,
+    880,
+    1420
+   ],
+   "color": "#3f789e",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "id": 2,
+   "title": "GENERAZIONE",
+   "bounding": [
+    940,
+    -30,
+    440,
+    830
+   ],
+   "color": "#2a6",
+   "font_size": 24,
+   "flags": {}
+  }
+ ],
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.6,
+   "offset": [
+    0,
+    0
+   ]
+  },
+  "info": {
+   "name": "KREA2_IBRIDO",
+   "author": "AlchemicaMente (idea) · Claude by Anthropic (code)",
+   "license": "GPL-3.0",
+   "url": "https://github.com/Nessuno76/ComfyUI-AlchemicaSampler"
+  }
+ },
+ "version": 0.4
+}

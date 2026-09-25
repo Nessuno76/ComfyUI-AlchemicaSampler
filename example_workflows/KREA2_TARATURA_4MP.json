@@ -1,0 +1,1106 @@
+{
+ "id": "KREA2_TARATURA_4MP",
+ "revision": 0,
+ "last_node_id": 21,
+ "last_link_id": 24,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "UNETLoader",
+   "pos": [
+    40,
+    40
+   ],
+   "size": [
+    400,
+    82
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      2,
+      8,
+      14,
+      20
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "UNETLoader"
+   },
+   "widgets_values": [
+    "krea2_turbo_nvfp4.safetensors",
+    "default"
+   ],
+   "title": "Krea 2 Turbo NVFP4  <- pick YOUR file"
+  },
+  {
+   "id": 2,
+   "type": "CLIPLoader",
+   "pos": [
+    40,
+    170
+   ],
+   "size": [
+    400,
+    106
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "CLIP",
+     "type": "CLIP",
+     "links": [
+      1,
+      7,
+      13,
+      19
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPLoader"
+   },
+   "widgets_values": [
+    "qwen3vl_4b_fp8_scaled.safetensors",
+    "krea2",
+    "default"
+   ]
+  },
+  {
+   "id": 3,
+   "type": "VAELoader",
+   "pos": [
+    40,
+    320
+   ],
+   "size": [
+    400,
+    58
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "VAE",
+     "type": "VAE",
+     "links": null,
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAELoader"
+   },
+   "widgets_values": [
+    "qwen_image_vae.safetensors"
+   ]
+  },
+  {
+   "id": 4,
+   "type": "CLIPTextEncode",
+   "pos": [
+    480,
+    40
+   ],
+   "size": [
+    460,
+    260
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 1
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      3
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPTextEncode"
+   },
+   "widgets_values": [
+    "Close-up portrait photograph of a 45-year-old woman with freckles and fine laugh lines, natural window light from the left, visible skin pores and peach fuzz, a few loose grey hairs, subtle catchlights in her hazel eyes, no makeup, shot on 85 mm lens at f/2.0, neutral grey background, true-to-life colour."
+   ],
+   "title": "prompt: portrait"
+  },
+  {
+   "id": 5,
+   "type": "AlchemicaResolution",
+   "pos": [
+    40,
+    420
+   ],
+   "size": [
+    320,
+    110
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "latent",
+     "type": "LATENT",
+     "links": [
+      4,
+      10,
+      16,
+      22
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "width",
+     "type": "INT",
+     "links": null,
+     "slot_index": 1
+    },
+    {
+     "name": "height",
+     "type": "INT",
+     "links": null,
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "AlchemicaResolution"
+   },
+   "widgets_values": [
+    "2:3",
+    4.0,
+    1
+   ],
+   "title": "⚗ FINAL resolution (the one you will use)"
+  },
+  {
+   "id": 6,
+   "type": "AlchemicaTaratura",
+   "pos": [
+    980,
+    40
+   ],
+   "size": [
+    340,
+    250
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 2
+    },
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 3
+    },
+    {
+     "name": "latent_image",
+     "type": "LATENT",
+     "link": 4
+    },
+    {
+     "name": "modello_riferimento",
+     "type": "MODEL",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "latent_riferimento",
+     "type": "LATENT",
+     "links": null,
+     "slot_index": 0
+    },
+    {
+     "name": "grafico",
+     "type": "IMAGE",
+     "links": [
+      5
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [
+      6
+     ],
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "AlchemicaTaratura"
+   },
+   "widgets_values": [
+    1001,
+    "fixed",
+    40,
+    1.0,
+    "krea2_nvfp4_4MP",
+    "accumula"
+   ],
+   "title": "⚗ Calibration 1/4 - portrait",
+   "color": "#253",
+   "bgcolor": "#364"
+  },
+  {
+   "id": 7,
+   "type": "PreviewImage",
+   "pos": [
+    1360,
+    40
+   ],
+   "size": [
+    420,
+    280
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 5
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "plot: portrait"
+  },
+  {
+   "id": 8,
+   "type": "PreviewAny",
+   "pos": [
+    1800,
+    40
+   ],
+   "size": [
+    460,
+    280
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "source",
+     "type": "*",
+     "link": 6
+    }
+   ],
+   "outputs": [
+    {
+     "name": "STRING",
+     "type": "STRING",
+     "links": null,
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PreviewAny"
+   },
+   "widgets_values": [],
+   "title": "report"
+  },
+  {
+   "id": 9,
+   "type": "CLIPTextEncode",
+   "pos": [
+    480,
+    370
+   ],
+   "size": [
+    460,
+    280
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 7
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      9
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPTextEncode"
+   },
+   "widgets_values": [
+    "Documentary photograph of a chemistry teacher in a white lab coat standing at a laboratory bench, waist-up, holding a 250 ml beaker of blue liquid and looking at the camera, three students blurred in the background, overcast daylight through tall windows, 35 mm lens, natural skin texture, realistic fabric wrinkles."
+   ],
+   "title": "prompt: half body"
+  },
+  {
+   "id": 10,
+   "type": "AlchemicaTaratura",
+   "pos": [
+    980,
+    370
+   ],
+   "size": [
+    340,
+    250
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 8
+    },
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 9
+    },
+    {
+     "name": "latent_image",
+     "type": "LATENT",
+     "link": 10
+    },
+    {
+     "name": "modello_riferimento",
+     "type": "MODEL",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "latent_riferimento",
+     "type": "LATENT",
+     "links": null,
+     "slot_index": 0
+    },
+    {
+     "name": "grafico",
+     "type": "IMAGE",
+     "links": [
+      11
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [
+      12
+     ],
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "AlchemicaTaratura"
+   },
+   "widgets_values": [
+    1002,
+    "fixed",
+    40,
+    1.0,
+    "krea2_nvfp4_4MP",
+    "accumula"
+   ],
+   "title": "⚗ Calibration 2/4 - half body",
+   "color": "#253",
+   "bgcolor": "#364"
+  },
+  {
+   "id": 11,
+   "type": "PreviewImage",
+   "pos": [
+    1360,
+    370
+   ],
+   "size": [
+    420,
+    280
+   ],
+   "flags": {},
+   "order": 10,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 11
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "plot: half body"
+  },
+  {
+   "id": 12,
+   "type": "PreviewAny",
+   "pos": [
+    1800,
+    370
+   ],
+   "size": [
+    460,
+    280
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "source",
+     "type": "*",
+     "link": 12
+    }
+   ],
+   "outputs": [
+    {
+     "name": "STRING",
+     "type": "STRING",
+     "links": null,
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PreviewAny"
+   },
+   "widgets_values": [],
+   "title": "report"
+  },
+  {
+   "id": 13,
+   "type": "CLIPTextEncode",
+   "pos": [
+    480,
+    700
+   ],
+   "size": [
+    460,
+    280
+   ],
+   "flags": {},
+   "order": 12,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 13
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      15
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPTextEncode"
+   },
+   "widgets_values": [
+    "Street photograph of an elderly man walking with a cane across a wet cobblestone square in an Italian town at dusk, full body, small in the frame, shop windows glowing, reflections on the stones, light rain, 28 mm lens, candid, realistic."
+   ],
+   "title": "prompt: full figure"
+  },
+  {
+   "id": 14,
+   "type": "AlchemicaTaratura",
+   "pos": [
+    980,
+    700
+   ],
+   "size": [
+    340,
+    250
+   ],
+   "flags": {},
+   "order": 13,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 14
+    },
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 15
+    },
+    {
+     "name": "latent_image",
+     "type": "LATENT",
+     "link": 16
+    },
+    {
+     "name": "modello_riferimento",
+     "type": "MODEL",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "latent_riferimento",
+     "type": "LATENT",
+     "links": null,
+     "slot_index": 0
+    },
+    {
+     "name": "grafico",
+     "type": "IMAGE",
+     "links": [
+      17
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [
+      18
+     ],
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "AlchemicaTaratura"
+   },
+   "widgets_values": [
+    1003,
+    "fixed",
+    40,
+    1.0,
+    "krea2_nvfp4_4MP",
+    "accumula"
+   ],
+   "title": "⚗ Calibration 3/4 - full figure",
+   "color": "#253",
+   "bgcolor": "#364"
+  },
+  {
+   "id": 15,
+   "type": "PreviewImage",
+   "pos": [
+    1360,
+    700
+   ],
+   "size": [
+    420,
+    280
+   ],
+   "flags": {},
+   "order": 14,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 17
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "plot: full figure"
+  },
+  {
+   "id": 16,
+   "type": "PreviewAny",
+   "pos": [
+    1800,
+    700
+   ],
+   "size": [
+    460,
+    280
+   ],
+   "flags": {},
+   "order": 15,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "source",
+     "type": "*",
+     "link": 18
+    }
+   ],
+   "outputs": [
+    {
+     "name": "STRING",
+     "type": "STRING",
+     "links": null,
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PreviewAny"
+   },
+   "widgets_values": [],
+   "title": "report"
+  },
+  {
+   "id": 17,
+   "type": "CLIPTextEncode",
+   "pos": [
+    480,
+    1030
+   ],
+   "size": [
+    460,
+    280
+   ],
+   "flags": {},
+   "order": 16,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 19
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      21
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPTextEncode"
+   },
+   "widgets_values": [
+    "Photorealistic still life on a high-school chemistry lab bench: a 250 ml Erlenmeyer flask half filled with clear blue copper sulfate solution, a glass burette clamped to a chrome stand above it, cold north window light, matte black bench top, brushed steel, glass refraction, liquid meniscus, tiny condensation droplets, 50 mm lens, f/2.8."
+   ],
+   "title": "prompt: still life"
+  },
+  {
+   "id": 18,
+   "type": "AlchemicaTaratura",
+   "pos": [
+    980,
+    1030
+   ],
+   "size": [
+    340,
+    250
+   ],
+   "flags": {},
+   "order": 17,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 20
+    },
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 21
+    },
+    {
+     "name": "latent_image",
+     "type": "LATENT",
+     "link": 22
+    },
+    {
+     "name": "modello_riferimento",
+     "type": "MODEL",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "latent_riferimento",
+     "type": "LATENT",
+     "links": null,
+     "slot_index": 0
+    },
+    {
+     "name": "grafico",
+     "type": "IMAGE",
+     "links": [
+      23
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [
+      24
+     ],
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "AlchemicaTaratura"
+   },
+   "widgets_values": [
+    1004,
+    "fixed",
+    40,
+    1.0,
+    "krea2_nvfp4_4MP",
+    "accumula"
+   ],
+   "title": "⚗ Calibration 4/4 - still life",
+   "color": "#253",
+   "bgcolor": "#364"
+  },
+  {
+   "id": 19,
+   "type": "PreviewImage",
+   "pos": [
+    1360,
+    1030
+   ],
+   "size": [
+    420,
+    280
+   ],
+   "flags": {},
+   "order": 18,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 23
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "plot: still life"
+  },
+  {
+   "id": 20,
+   "type": "PreviewAny",
+   "pos": [
+    1800,
+    1030
+   ],
+   "size": [
+    460,
+    280
+   ],
+   "flags": {},
+   "order": 19,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "source",
+     "type": "*",
+     "link": 24
+    }
+   ],
+   "outputs": [
+    {
+     "name": "STRING",
+     "type": "STRING",
+     "links": null,
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PreviewAny"
+   },
+   "widgets_values": [],
+   "title": "report"
+  },
+  {
+   "id": 21,
+   "type": "Note",
+   "pos": [
+    40,
+    560
+   ],
+   "size": [
+    420,
+    470
+   ],
+   "flags": {},
+   "order": 20,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "Note"
+   },
+   "widgets_values": [
+    "⚗ CALIBRATE YOUR MODEL\n\n1. Pick YOUR Krea 2 checkpoint in the first node.\n2. Set the FINAL resolution you will use here (4 MP = ~1664x2496).\n3. Queue once: the 4 nodes measure 4 different prompts (portrait,\n   half body, full figure, still life) and average them into the same\n   profile 'krea2_nvfp4_4MP' (mode 'accumula' = accumulate).\n4. Press R in the browser: the profile appears in the sampler's\n   'profilo' menu. The last report holds the averaged values.\n\nTo start from scratch: set 'sostituisci' (replace) in the first node.\nMore prompts of your own = better profile (change the texts, re-run).\n\nOPTIONAL: connect 'modello_riferimento' to a second UNETLoader with\nkrea2_turbo_fp8_scaled: it measures how far NVFP4 drifts from FP8\nat each sigma (slow: ComfyUI swaps the two models in VRAM).\n\nRead the GPU/torch/CUDA line of the report: on Blackwell GPUs NVFP4\nruns at full speed only with PyTorch built for CUDA 13.0 (cu130)."
+   ],
+   "title": "⚗ AlchemicaMente · notes"
+  }
+ ],
+ "links": [
+  [
+   1,
+   2,
+   0,
+   4,
+   0,
+   "CLIP"
+  ],
+  [
+   2,
+   1,
+   0,
+   6,
+   0,
+   "MODEL"
+  ],
+  [
+   3,
+   4,
+   0,
+   6,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   4,
+   5,
+   0,
+   6,
+   2,
+   "LATENT"
+  ],
+  [
+   5,
+   6,
+   1,
+   7,
+   0,
+   "IMAGE"
+  ],
+  [
+   6,
+   6,
+   2,
+   8,
+   0,
+   "STRING"
+  ],
+  [
+   7,
+   2,
+   0,
+   9,
+   0,
+   "CLIP"
+  ],
+  [
+   8,
+   1,
+   0,
+   10,
+   0,
+   "MODEL"
+  ],
+  [
+   9,
+   9,
+   0,
+   10,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   10,
+   5,
+   0,
+   10,
+   2,
+   "LATENT"
+  ],
+  [
+   11,
+   10,
+   1,
+   11,
+   0,
+   "IMAGE"
+  ],
+  [
+   12,
+   10,
+   2,
+   12,
+   0,
+   "STRING"
+  ],
+  [
+   13,
+   2,
+   0,
+   13,
+   0,
+   "CLIP"
+  ],
+  [
+   14,
+   1,
+   0,
+   14,
+   0,
+   "MODEL"
+  ],
+  [
+   15,
+   13,
+   0,
+   14,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   16,
+   5,
+   0,
+   14,
+   2,
+   "LATENT"
+  ],
+  [
+   17,
+   14,
+   1,
+   15,
+   0,
+   "IMAGE"
+  ],
+  [
+   18,
+   14,
+   2,
+   16,
+   0,
+   "STRING"
+  ],
+  [
+   19,
+   2,
+   0,
+   17,
+   0,
+   "CLIP"
+  ],
+  [
+   20,
+   1,
+   0,
+   18,
+   0,
+   "MODEL"
+  ],
+  [
+   21,
+   17,
+   0,
+   18,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   22,
+   5,
+   0,
+   18,
+   2,
+   "LATENT"
+  ],
+  [
+   23,
+   18,
+   1,
+   19,
+   0,
+   "IMAGE"
+  ],
+  [
+   24,
+   18,
+   2,
+   20,
+   0,
+   "STRING"
+  ]
+ ],
+ "groups": [],
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.6,
+   "offset": [
+    0,
+    0
+   ]
+  },
+  "info": {
+   "name": "KREA2_TARATURA_4MP",
+   "author": "AlchemicaMente (idea) · Claude by Anthropic (code)",
+   "license": "GPL-3.0",
+   "url": "https://github.com/Nessuno76/ComfyUI-AlchemicaSampler"
+  }
+ },
+ "version": 0.4
+}

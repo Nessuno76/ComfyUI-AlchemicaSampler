@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="AlchemicaMente retort">
+  <rect width="256" height="256" rx="48" fill="#1d2a3a"/>
+  <title>⚗ AlchemicaMente</title>
+  <defs>
+    <clipPath id="bulb"><circle cx="100" cy="112" r="64"/></clipPath>
+    <linearGradient id="liquid" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b94fdc"/>
+      <stop offset="1" stop-color="#8a2fb5"/>
+    </linearGradient>
+  </defs>
+  <!-- neck of the retort -->
+  <path d="M128 56 C170 54 208 74 238 95 C245 100 242 115 232 114 C210 110 184 114 150 136 Z" fill="#a9e0f8"/>
+  <path d="M168 72 C190 78 210 88 228 99" fill="none" stroke="#ffffff" stroke-opacity="0.6" stroke-width="5" stroke-linecap="round"/>
+  <!-- drop falling from the spout -->
+  <path d="M236 124 c0 0 -8 10 -8 15 a8 8 0 0 0 16 0 c0 -5 -8 -15 -8 -15z" fill="#c35fe6"/>
+  <!-- bulb -->
+  <circle cx="100" cy="112" r="64" fill="#a9e0f8"/>
+  <g clip-path="url(#bulb)">
+    <rect x="30" y="118" width="140" height="70" fill="url(#liquid)"/>
+    <ellipse cx="100" cy="118" rx="64" ry="9" fill="#e38cff"/>
+    <circle cx="82" cy="146" r="4" fill="#f3c6ff"/>
+    <circle cx="112" cy="156" r="3" fill="#f3c6ff"/>
+    <circle cx="124" cy="138" r="3.5" fill="#f3c6ff"/>
+  </g>
+  <path d="M62 84 C66 70 76 62 88 58" fill="none" stroke="#ffffff" stroke-opacity="0.7" stroke-width="9" stroke-linecap="round"/>
+  <!-- tripod -->
+  <path d="M48 150 Q100 166 152 150" fill="none" stroke="#2e7384" stroke-width="10" stroke-linecap="round"/>
+  <path d="M52 148 Q100 160 148 148" fill="none" stroke="#8cb9c7" stroke-width="4" stroke-linecap="round"/>
+  <path d="M62 158 L40 236" stroke="#86b0bf" stroke-width="9" stroke-linecap="round"/>
+  <path d="M138 158 L160 236" stroke="#86b0bf" stroke-width="9" stroke-linecap="round"/>
+  <path d="M100 166 L100 226" stroke="#5f93a3" stroke-width="8" stroke-linecap="round"/>
+</svg>
