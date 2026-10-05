@@ -166,8 +166,8 @@ class AlchemicaDetailOpts:
             "detail_sigma_hi": _f(0.0, -1.0, 1.0, 0.01, "Sigma window: start. 0 = use detail_start/end, -1 = from the profile"),
             "detail_sigma_lo": _f(0.0, -1.0, 1.0, 0.01, "Sigma window: end. 0 = use detail_start/end, -1 = from the profile"),
             "eta": _f(0.5, 0.0, 1.5, 0.05, "Ancestral noise at high sigma (variety/texture). 0 = deterministic"),
-            "sigma_gate": _f(0.10, 0.0, 1.0, 0.01, "Below this sigma eta = 0 (no grain in the last steps)"),
-            "gate_hi": _f(0.35, 0.0, 1.0, 0.01, "Above this sigma eta is at full strength"),
+            "sigma_gate": _f(0.65, 0.0, 1.0, 0.01, "Below this sigma eta = 0. Keep this at or above the profile's detail_sigma_hi, or eta reinjects noise while skin/fabric detail is forming (wet-look artifacts)"),
+            "gate_hi": _f(0.85, 0.0, 1.0, 0.01, "Above this sigma eta is at full strength (pure composition phase)"),
             "contraction": _f(0.85, 0.3, 1.2, 0.01, "Scale of the initial noise. 1 = standard"),
         }, **_OPT_IN}
 
@@ -421,13 +421,26 @@ class AlchemicaKrea:
                 "dettaglio": _f(0.12, 0.0, 0.25, 0.01,
                                 "Micro-relief of skin and fabric. 0.12 is the validated value; above 0.2 coloured speckles come back"),
                 "varieta": _f(0.6, 0.0, 1.2, 0.05,
-                              "Noise that creates texture and separates seeds. 0 = deterministic"),
+                              "Ancestral noise: texture and seed-to-seed variety. 0 = deterministic. "
+                              "2026-10-05: on checkpoint+LoRA combos with a strong LoRA, above ~0.3 this can produce "
+                              "wet-skin/droplet artifacts ('gocce') regardless of where it's gated — if you see that, "
+                              "lower this to 0.15-0.2 first (confirmed clean at 0.15 on fineporn+krea2filterbypass3 x2)"),
                 "denoise": _f(1.0, 0.0, 1.0, 0.01, "1.0 = from scratch. <1 = img2img (disables two-stage mode)"),
+                "contraction": _f(0.85, 0.3, 1.2, 0.01,
+                                  "Scale of the initial noise. 1 = standard ComfyUI noise. 2026-10-05: NOT a cause of "
+                                  "'gocce' by itself (tested at 1.0 with eta 0.6: gocce unchanged), but at LOW varieta "
+                                  "(~0.3) the default 0.85 is measurably cleaner than 1.0 — leave at 0.85 unless you "
+                                  "have a specific reason to change it"),
+                "steps": _i(-1, -1, 50,
+                            "Step override. -1 = from 'modo'. Single-stage: total steps. Two-stage: overrides only "
+                            "stage 2 (refinement); stage 1 stays tied to the calibration profile"),
+                "cfg": _f(-1.0, -1.0, 20.0, 0.05,
+                          "CFG override, flat (no high/low schedule). -1 = 1.0 (Turbo default: negative skipped, 0 extra cost)"),
             },
             "optional": {
-                "negative": ("CONDITIONING", {"tooltip": "Used only if you set cfg > 1 with the advanced nodes"}),
+                "negative": ("CONDITIONING", {"tooltip": "Used only if you set cfg > 1"}),
                 "modello_rifinitura": ("MODEL", {"tooltip": "Optional: composes with the main model and REFINES with this one (e.g. anatomy from a fine-tune, skin from base Krea 2). Requires two-stage mode"}),
-                "opts": (OPTS, {"tooltip": "For tinkerers: overrides everything with the option nodes"}),
+                "opts": (OPTS, {"tooltip": "For tinkerers: overrides everything with the option nodes (including contraction/steps/cfg set here)"}),
             },
         }
 
@@ -438,7 +451,8 @@ class AlchemicaKrea:
     DESCRIPTION = "AlchemicaSampler in a single node: the knobs that matter, the rest from the calibration profile."
 
     def sample(self, model, positive, latent_image, seed, profilo, modo, due_stadi,
-               ridisegno, dettaglio, varieta, denoise, negative=None, opts=None, modello_rifinitura=None,
+               ridisegno, dettaglio, varieta, denoise, contraction=0.85, steps=-1, cfg=-1.0,
+               negative=None, opts=None, modello_rifinitura=None,
                **ignorati):
         # **ignorati: se il workflow e' piu' recente del codice caricato, il nodo avvisa
         # invece di bloccare tutto (ComfyUI non ricarica i moduli senza riavvio del server)
@@ -446,17 +460,25 @@ class AlchemicaKrea:
             print(f"[AlchemicaKrea] ingressi non riconosciuti: {list(ignorati)} — "
                   f"riavvia il server di ComfyUI, non basta ricaricare la pagina")
         s1, s2, uno, restart, solver = MODI[modo]
-        cfg = copy.deepcopy(PRESETS["foto_tarata_2K"])
-        cfg.update({
+        cfg_dict = copy.deepcopy(PRESETS["foto_tarata_2K"])
+        cfg_dict.update({
             "solver": solver, "two_stage": bool(due_stadi),
             "stage1_steps": s1, "stage2_steps": s2, "steps": uno,
             "restart_steps": restart, "restart_sigma": -1,
             "handoff_sigma": float(ridisegno),
             "detail_amount": float(dettaglio), "detail_sigma_hi": -1, "detail_sigma_lo": -1,
-            "eta": float(varieta),
+            "eta": float(varieta), "contraction": float(contraction),
         })
+        if int(steps) >= 1:
+            if due_stadi:
+                cfg_dict["stage2_steps"] = int(steps)
+            else:
+                cfg_dict["steps"] = int(steps)
+        if float(cfg) >= 0.0:
+            cfg_dict["cfg_base"] = cfg_dict["cfg_peak"] = float(cfg)
         if opts:
-            cfg.update(opts)
+            cfg_dict.update(opts)
+        cfg = cfg_dict
         cfg["profilo"], nota = _pick_profile(model, profilo)
         out, sig, report, plots = pipeline.run(model, positive, negative, latent_image, seed, cfg, denoise,
                                                model2=modello_rifinitura)
@@ -484,9 +506,21 @@ def _lore():
         return ["(nessuna)"]
 
 
+class _Qualsiasi(str):
+    """Tipo jolly '*': ComfyUI lo accetta verso qualunque ingresso (serve ai connettori di passaggio)."""
+    def __ne__(self, altro):
+        return False
+
+
+QUALSIASI = _Qualsiasi("*")
+PASSA_MAX = 8   # connettori di passaggio: l'interfaccia (web/alchemica_passa.js) ne mostra uno libero alla volta
+
+
 class AlchemicaLoraStack:
     """Fino a 6 LoRA in un nodo solo, applicate in ordine. Nessuna dipendenza esterna.
-    Si concatena: l'uscita MODEL di uno entra nell'ingresso model del successivo."""
+    Si concatena: l'uscita MODEL di uno entra nell'ingresso model del successivo.
+    Connettori di PASSAGGIO (passa_1..8): qualunque cosa entra esce uguale (es. il VAE dal loader), solo per
+    tenere ordinati i cavi. Quando colleghi l'ultimo libero ne compare uno nuovo."""
 
     _cache = {}
 
@@ -500,10 +534,13 @@ class AlchemicaLoraStack:
         return {"required": req,
                 "optional": {"clip": ("CLIP", {"tooltip": "Optional: connect it and the LoRAs also act on the text encoder"}),
                              "forza_clip": ("FLOAT", {"default": 1.0, "min": -4.0, "max": 4.0, "step": 0.05,
-                                                      "tooltip": "Single multiplier for the text part"})}}
+                                                      "tooltip": "Single multiplier for the text part"}),
+                             **{f"passa_{i}": (QUALSIASI, {"tooltip": "Pass-through: whatever enters leaves unchanged "
+                                                           "(e.g. the VAE), only to keep the wires tidy"})
+                                for i in range(1, PASSA_MAX + 1)}}}
 
-    RETURN_TYPES = ("MODEL", "CLIP", "STRING")
-    RETURN_NAMES = ("model", "clip", "riepilogo")
+    RETURN_TYPES = ("MODEL", "CLIP", "STRING") + (QUALSIASI,) * PASSA_MAX
+    RETURN_NAMES = ("model", "clip", "riepilogo") + tuple(f"passa_{i}" for i in range(1, PASSA_MAX + 1))
     FUNCTION = "applica"
     CATEGORY = CAT
     DESCRIPTION = "LoRA stack for AlchemicaKrea: connect its output to the composition model or to the refinement model."
@@ -543,7 +580,7 @@ class AlchemicaLoraStack:
             usate.append(f"{nome} x{forza:g}" + (f" (testo x{sc:g})" if clip is not None else ""))
         testo = "LoRA attive: " + (", ".join(usate) if usate else "nessuna")
         print("[AlchemicaLoraStack] " + testo)
-        return (model, clip, testo)
+        return (model, clip, testo) + tuple(kw.get(f"passa_{i}") for i in range(1, PASSA_MAX + 1))
 
 
 NODE_CLASS_MAPPINGS = {

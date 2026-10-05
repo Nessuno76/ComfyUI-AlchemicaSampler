@@ -70,26 +70,39 @@ class AlchemicaEnhancer:
             "idea": ("STRING", {"multiline": True, "default": "",
                                 "tooltip": "Any language, a few words are enough. Empty + image = describes the image"}),
             "stile": (list(testo.STILI.keys()), {"default": "foto realistica"}),
-            "parole": _i(80, 30, 200, "Length of the SCENE (the detail is about one third)"),
+            "parole": _i(80, 30, 200, "Length of the SCENE (the detail is about 30-50% of it)"),
             "creativita": _f(0.0, 0.0, 1.5, 0.05, "0 = deterministic (same text every run). 0.6-0.9 = variations; change the seed"),
             "seed": ("INT", {"default": 0, "min": 0, "max": SEED_MAX, "control_after_generate": True,
                              "tooltip": "Only matters when creativita (creativity) > 0"}),
         }, "optional": {
             "immagine": ("IMAGE", {"tooltip": "Visual reference: the model looks at it (Qwen3-VL is a vision-language model)"}),
+            # opzionali IN FONDO: i workflow gia' salvati non spostano i valori dei widget
+            "pelle": (list(testo.PELLE.keys()), {"default": testo.PELLE_DEFAULT,
+                      "tooltip": "Skin rendering in the DETAIL. smooth = no body/vellus hair (also added to the negative); "
+                                 "natural = fine vellus hair (the 1.0.0 behaviour); model decides = hair not mentioned"}),
+            "istruzioni": ("STRING", {"multiline": True, "default": "",
+                           "tooltip": "Your own extra instructions for the enhancer, any language. They are added to its "
+                                      "rules and win when they conflict. E.g. 'Skin: smooth, tanned. Always golden hour light.'"}),
         }}
 
     RETURN_TYPES = ("STRING", "STRING", "STRING", "STRING")
     RETURN_NAMES = ("scena", "dettaglio", "negativo", "report")
     FUNCTION = "scrivi"
     CATEGORY = CAT
+    OUTPUT_NODE = True                       # cosi' 'scena' si legge da /history anche senza un nodo ShowText a valle
     DESCRIPTION = "Prompt enhancer that uses Krea 2's own text encoder: no Ollama, it can also read images."
 
-    def scrivi(self, clip, idea, stile, parole, creativita, seed, immagine=None):
+    def scrivi(self, clip, idea, stile, parole, creativita, seed, immagine=None, pelle=testo.PELLE_DEFAULT, istruzioni=""):
         if not idea.strip() and immagine is None:
             raise ValueError("Alchemica Prompt enhancer: write an idea or connect an image")
         img = immagine[:1] if immagine is not None else None
-        scena, dett, neg, grezzo, tolti = testo.genera(clip, idea, stile, parole, creativita, seed, img)
-        rep = [f"stile {stile} · creativita' {creativita}" + (f" · seed {seed}" if creativita > 0 else " · deterministico"),
+        scena, dett, neg, grezzo, tolti = testo.genera(clip, idea, stile, parole, creativita, seed, img,
+                                                       pelle=pelle, istruzioni=istruzioni)
+        rep = [f"stile {stile} · pelle {pelle} · creativita' {creativita}"
+               + (f" · seed {seed}" if creativita > 0 else " · deterministico")]
+        if (istruzioni or "").strip():
+            rep.append("istruzioni tue: " + " ".join(istruzioni.split()))
+        rep += [
                f"SCENA ({len(scena.split())} parole): {scena}",
                f"DETTAGLIO ({len(dett.split())} parole): {dett}",
                f"NEGATIVO: {neg}"]
@@ -98,7 +111,7 @@ class AlchemicaEnhancer:
         if not dett:
             rep.append("ATTENZIONE: il modello non ha scritto il DETTAGLIO; testo grezzo sotto")
             rep.append(grezzo)
-        return (scena, dett, neg, "\n".join(rep))
+        return {"ui": {"text": [scena]}, "result": (scena, dett, neg, "\n".join(rep))}
 
 
 class AlchemicaTesto:
@@ -112,11 +125,19 @@ class AlchemicaTesto:
             "unione": (["aggiungi alla scena", "solo dettaglio"], {"default": "aggiungi alla scena"}),
         }}
 
-    RETURN_TYPES = ("CONDITIONING", "CONDITIONING", "CONDITIONING", "STRING")
-    RETURN_NAMES = ("positive_scena", "positive_dettaglio", "negative", "testo_dettaglio")
+    # 'positive' (in fondo: i collegamenti dei workflow salvati non si spostano) = scena + dettaglio in UN solo
+    # conditioning, per i sampler che non hanno l'ingresso del dettaglio (KSampler, AlchemicaKrea, ...)
+    RETURN_TYPES = ("CONDITIONING", "CONDITIONING", "CONDITIONING", "STRING", "CONDITIONING")
+    RETURN_NAMES = ("positive_scena", "positive_dettaglio", "negative", "testo_dettaglio", "positive")
+    OUTPUT_TOOLTIPS = ("Scene only: the first phase of ⚗ AlchemicaKrea Pro",
+                       "Detail phase of ⚗ AlchemicaKrea Pro (scene + detail, or detail only, see 'unione')",
+                       "Negative for ⚗ Attention guidance (NAG)",
+                       "The text actually encoded for the detail phase",
+                       "COMPLETE positive (scene + detail together) for samplers without a detail input")
     FUNCTION = "codifica"
     CATEGORY = CAT
-    DESCRIPTION = "Encodes the three texts. The negative feeds NAG (⚗ Attention guidance); at cfg 1 it has no effect anywhere else."
+    DESCRIPTION = ("Encodes the three texts. 'positive' = scene + detail in one conditioning, for any sampler. "
+                   "The negative feeds NAG (⚗ Attention guidance); at cfg 1 it has no effect anywhere else.")
 
     @staticmethod
     def _enc(clip, t):
@@ -131,7 +152,13 @@ class AlchemicaTesto:
         else:
             td, b = scena, a
         n = self._enc(clip, negativo.strip() or " ")
-        return (a, b, n, td)
+        if not d:
+            completo = a
+        elif unione == "solo dettaglio":                    # b is the detail alone: encode scene + detail
+            completo = self._enc(clip, scena.rstrip().rstrip(".") + ". " + d)
+        else:
+            completo = b                                    # already scene + detail
+        return (a, b, n, td, completo)
 
 
 class AlchemicaAttenzione:

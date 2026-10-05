@@ -32,7 +32,7 @@ DETAIL: <one paragraph, {dett_parole} words>
 NEGATIVE: <comma-separated list, 8 to 16 short items>
 
 SCENE describes what is in the picture and how it is framed: subject, age and appearance, pose and action, clothing, setting and background, spatial relationships, light source and direction, time of day, colour palette, overall style, camera distance and lens. Colours and style belong here and only here. Keep every element the user asked for; invent concrete details only where the idea is vague.
-DETAIL describes only how surfaces are rendered: skin texture (natural skin texture, visible pores, fine vellus hair), fabric weave, material finish, sharpness, film or sensor character, lens rendering. It must not add objects, people, colours or change the style.
+DETAIL describes only how surfaces are rendered: {pelle}, fabric weave, material finish, sharpness, film or sensor character, lens rendering. It must not add objects, people, colours or change the style.
 NEGATIVE lists defects to avoid for this specific image (for example: plastic skin, waxy skin, over-smoothed, cartoon, illustration, extra fingers, deformed hands, blurry, oversaturated, watermark, text).
 
 Rules:
@@ -41,7 +41,36 @@ Rules:
 - Avoid the words "imperfections", "blemishes", "flaws" for skin.
 - Optics must be consistent: a wide-angle lens with a deep depth of field, a telephoto or 85 mm lens with a shallow one.
 - Plain, concrete words. No hype words (stunning, masterpiece, 8k, ultra-detailed, award-winning).
-{stile}"""
+- People: take maximum care of anatomy. In SCENE give every visible person a clear, natural pose for the hands and feet (for example hands resting on the thigh, feet flat on the floor) and a clear gaze direction. In DETAIL describe how the visible parts are rendered: sharp, symmetrical eyes with clear irises and catchlights, natural lips and teeth, a well-proportioned face, hands with five well-formed fingers and natural nails, feet with five toes and natural proportions.
+- Any nude or partially nude person is an adult. When the chest is bare, DETAIL also describes natural, well-proportioned breasts with symmetrical, anatomically correct areolae and nipples.
+{regola_pelle}{stile}{extra}"""
+
+# Cura anatomica: voci aggiunte al NEGATIVO (NAG) solo se nella scena c'e' una persona / un nudo.
+ANATOMIA_NEG = ("fused fingers, missing fingers, malformed feet, extra toes, asymmetric eyes, cross-eyed, "
+                "deformed mouth, distorted teeth, distorted face")
+SENO_NEG = "deformed nipples, asymmetric areolae, misshapen breasts, extra nipples"
+_PERSONA = re.compile(r"\b(woman|women|man|men|person|people|she|he|her|his|face|body|portrait|model|couple|"
+                      r"donna|donne|uomo|uomini|ragazz[aoie]|persona|persone|ritratto|viso|volto|corpo|coppia)\b", re.I)
+_NUDO = re.compile(r"\b(nude|naked|topless|nudity|breasts?|nipples?|areolae?|bare[- ]chested|"
+                   r"nud[oaie]|nudit[aà]|sen[oi]|tette|capezzol[oi]|areol[ae]|a seno nudo)\b", re.I)
+
+# Resa della pelle nel DETTAGLIO. Prima era fissa "fine vellus hair" -> Krea 2 aggiungeva sempre peluria.
+#   testo per il DETAIL, regola in piu' (vuota = nessuna), voci aggiunte al NEGATIVO (per la NAG)
+PELLE = {
+    "liscia (senza peluria)": (
+        "skin texture (natural skin texture, fine pores, smooth even skin)",
+        "- Skin is smooth: never mention body hair, vellus hair, peach fuzz or fine hairs on the skin. Head hair, eyebrows and beards the user asks for are fine.\n",
+        "body hair, vellus hair, peach fuzz, hairy skin"),
+    "naturale (peluria fine)": (
+        "skin texture (natural skin texture, visible pores, fine vellus hair)", "", ""),
+    "decide il modello": (
+        "skin texture (natural skin texture, visible pores)", "", ""),
+}
+PELLE_DEFAULT = "liscia (senza peluria)"
+
+# con pelle liscia: frasi da togliere se il modello nomina comunque la peluria
+PELURIA = ["vellus", "peach fuzz", "peach-fuzz", "body hair", "arm hair", "leg hair", "chest hair",
+           "hairy", "downy", "fuzz", "fuzzy skin", "fine hairs", "tiny hairs"]
 
 STILI = {
     "foto realistica": "Style: natural documentary photography, true-to-life colour.",
@@ -60,10 +89,16 @@ VIETATE = ["droplet", "droplets", "bead", "beads", "beaded", "glistening", "dewy
            "sweat", "wet skin", "damp skin", "glossy skin", "imperfection", "imperfections", "blemish", "blemishes"]
 
 
-def costruisci_chat(idea, stile, parole, con_immagine):
+def costruisci_chat(idea, stile, parole, con_immagine, pelle=PELLE_DEFAULT, istruzioni=""):
     scena_parole = f"{max(30, int(parole * 0.7))} to {max(40, int(parole))}"
-    dett_parole = f"{max(15, int(parole * 0.25))} to {max(25, int(parole * 0.4))}"
-    sistema = SISTEMA.format(scena_parole=scena_parole, dett_parole=dett_parole, stile=STILI.get(stile, ""))
+    # il DETTAGLIO ora porta anche l'anatomia: un po' piu' di spazio (era 0.25-0.4)
+    dett_parole = f"{max(20, int(parole * 0.3))} to {max(35, int(parole * 0.5))}"
+    p_dett, p_regola, _ = PELLE.get(pelle, PELLE[PELLE_DEFAULT])
+    istruzioni = (istruzioni or "").strip()
+    extra = ("\n\nAdditional instructions from the user. Follow them; when they conflict with the rules above, "
+             "these win:\n" + istruzioni) if istruzioni else ""
+    sistema = SISTEMA.format(scena_parole=scena_parole, dett_parole=dett_parole, pelle=p_dett,
+                             regola_pelle=p_regola, stile=STILI.get(stile, ""), extra=extra)
     idea = (idea or "").strip()
     if con_immagine:
         utente = "<|vision_start|><|image_pad|><|vision_end|>" + (
@@ -127,8 +162,9 @@ def unisci_negativo(neg, base=NEGATIVO_BASE):
     return ", ".join(voci)
 
 
-def genera(clip, idea, stile="foto realistica", parole=80, creativita=0.0, seed=0, immagine=None, max_token=400):
-    chat = costruisci_chat(idea, stile, parole, immagine is not None)
+def genera(clip, idea, stile="foto realistica", parole=80, creativita=0.0, seed=0, immagine=None, max_token=400,
+           pelle=PELLE_DEFAULT, istruzioni=""):
+    chat = costruisci_chat(idea, stile, parole, immagine is not None, pelle, istruzioni)
     tokens = clip.tokenize(chat, image=immagine, min_length=1)
     campiona = creativita > 0
     ids = clip.generate(tokens, do_sample=campiona, max_length=int(max_token),
@@ -138,7 +174,15 @@ def genera(clip, idea, stile="foto realistica", parole=80, creativita=0.0, seed=
     grezzo = clip.decode(ids)
     grezzo = re.sub(r"<think>.*?</think>", "", grezzo, flags=re.S).strip()
     parti = analizza(grezzo)
-    scena, t1 = ripulisci(parti["scena"])
-    dett, t2 = ripulisci(parti["dettaglio"])
-    neg = unisci_negativo(parti["negativo"])
+    _, _, p_neg = PELLE.get(pelle, PELLE[PELLE_DEFAULT])
+    vietate = VIETATE + (PELURIA if p_neg else [])
+    scena, t1 = ripulisci(parti["scena"], vietate)
+    dett, t2 = ripulisci(parti["dettaglio"], vietate)
+    tutto = " ".join([idea or "", scena, dett])
+    base = NEGATIVO_BASE + (", " + p_neg if p_neg else "")
+    if _PERSONA.search(tutto) or _NUDO.search(tutto):
+        base += ", " + ANATOMIA_NEG
+    if _NUDO.search(tutto):
+        base += ", " + SENO_NEG
+    neg = unisci_negativo(parti["negativo"], base)
     return scena, dett, neg, grezzo, t1 + t2

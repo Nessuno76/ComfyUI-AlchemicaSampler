@@ -21,7 +21,7 @@ DEFAULTS = {
     # --- solver & dettaglio
     "solver": "euler", "detail_amount": 0.0, "detail_start": 0.15, "detail_end": 0.95,
     "detail_peak": 0.6, "detail_sigma_hi": 0.0, "detail_sigma_lo": 0.0,
-    "eta": 0.0, "sigma_gate": 0.10, "gate_hi": 0.35, "contraction": 1.0,
+    "eta": 0.0, "sigma_gate": 0.65, "gate_hi": 0.85, "contraction": 1.0,
     # --- restart
     "restart_steps": 0, "restart_sigma": 0.5,
     # --- guida
@@ -42,6 +42,19 @@ def _p(**kw):
 # 2026-09-22, prova A/B/C/D sul modello reale (Krea 2 Turbo NVFP4, 3 MP):
 # il detail boost a 0.40 produce puntinatura colorata sulla pelle; eta 0.6 e' pulito.
 # Da qui: detail 0.12 e finestra che non scende sotto sigma 0.25 (DETAIL_FLOOR).
+#
+# 2026-10-05, prova A/B/C/D su un modello diverso (fineporn checkpoint + LoRA
+# krea2filterbypass3 x2, 2 MP): stavolta eta 0.6 con la vecchia finestra (sigma_gate
+# 0.10 -> gate_hi 0.35) produce gocce/pelle bagnata — confermato isolando la variabile
+# (restart ON/OFF indifferente, eta ON/OFF e' l'unico fattore). Causa: gate_hi=0.35
+# cadeva DENTRO la finestra di formazione del dettaglio pelle (dal profilo, circa
+# 0.6 -> 0.15), quindi l'eta a piena forza reiniettava rumore ancestrale proprio
+# mentre si decide l'ombreggiatura, non solo durante la composizione. Spostati
+# sigma_gate/gate_hi a 0.65/0.85 (sopra la finestra dettaglio in entrambi i profili
+# misurati finora) cosi' l'eta resta attiva SOLO nella fase di composizione pura
+# (dove da' varieta' di posa/seed senza toccare la pelle) e si spegne del tutto prima
+# che il dettaglio cominci a formarsi. Essendo un restringimento della finestra, non
+# puo' peggiorare il caso del 2026-09-22 (gia' pulito con la finestra piu' larga).
 
 PRESETS = {
     # --- riferimento (scheduler nativo di ComfyUI, per confronto)

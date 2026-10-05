@@ -20,7 +20,14 @@ Per ogni step:
   3. ultimo step (sigma_next = 0) -> x = x0 predetto
   4. ETA a cancello: componente ancestrale (rumore fresco) che vale eta a sigma alte e
      si spegne con smoothstep sotto gate_hi fino a 0 a sigma_gate. Niente rumore negli
-     ultimi step = niente macchie scure/grana nelle ombre.
+     ultimi step = niente macchie scure/grana nelle ombre. Default (dal 2026-10-05):
+     gate_hi/sigma_gate = 0.85/0.65, SOPRA la finestra di formazione del dettaglio
+     (detail_sigma_hi/lo dal profilo, circa 0.6 -> 0.15): l'eta resta confinata alla
+     fase di pura composizione (varieta' di posa/seed) e non tocca piu' l'ombreggiatura
+     della pelle. Con la vecchia finestra (0.35/0.10) il rumore ancestrale reiniettato
+     mentre il dettaglio pelle si stava formando veniva letto dal modello come
+     riflessi/pelle bagnata (confermato con test A/B/C/D: isolando eta da solo, non il
+     restart, le "gocce" sparivano solo azzerando eta).
   5. altrimenti passo del SOLVER scelto (registro estendibile).
 
 Formulazione CONST (rectified flow): x = s*eps + (1-s)*x0, d = (x - x0)/s.
