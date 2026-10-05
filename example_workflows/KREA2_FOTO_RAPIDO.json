@@ -1,0 +1,746 @@
+{
+ "last_node_id": 14,
+ "last_link_id": 18,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "UNETLoader",
+   "pos": [
+    20,
+    40
+   ],
+   "size": [
+    330,
+    82
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      1
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "UNETLoader"
+   },
+   "title": "modello",
+   "widgets_values": [
+    "finepornV4INT8NVFP4BF16_v4Nvfp4.safetensors",
+    "default"
+   ]
+  },
+  {
+   "id": 2,
+   "type": "CLIPLoader",
+   "pos": [
+    20,
+    160
+   ],
+   "size": [
+    330,
+    106
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "CLIP",
+     "type": "CLIP",
+     "links": [
+      2
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPLoader"
+   },
+   "title": "text encoder (tipo krea2)",
+   "widgets_values": [
+    "qwen3vl_4b_fp8_scaled.safetensors",
+    "krea2",
+    "default"
+   ]
+  },
+  {
+   "id": 3,
+   "type": "VAELoader",
+   "pos": [
+    20,
+    300
+   ],
+   "size": [
+    330,
+    58
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "VAE",
+     "type": "VAE",
+     "links": [
+      5,
+      11
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAELoader"
+   },
+   "widgets_values": [
+    "qwen_image_vae.safetensors"
+   ]
+  },
+  {
+   "id": 5,
+   "type": "UpscaleModelLoader",
+   "pos": [
+    20,
+    390
+   ],
+   "size": [
+    330,
+    58
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "UPSCALE_MODEL",
+     "type": "UPSCALE_MODEL",
+     "links": [
+      6
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "UpscaleModelLoader"
+   },
+   "title": "upscale (usato solo se ingrandisci)",
+   "widgets_values": [
+    "4x-ClearRealityV1.pth"
+   ]
+  },
+  {
+   "id": 4,
+   "type": "LoadImage",
+   "pos": [
+    380,
+    40
+   ],
+   "size": [
+    340,
+    460
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      3
+     ]
+    },
+    {
+     "name": "MASK",
+     "type": "MASK",
+     "links": [
+      4
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadImage"
+   },
+   "title": "1 · FOTO (tasto destro > Open in MaskEditor per dipingere la zona)",
+   "widgets_values": [
+    "a_chasual_foto_or_a_real_photo (3).jpeg",
+    "image"
+   ],
+   "color": "#232",
+   "bgcolor": "#353"
+  },
+  {
+   "id": 6,
+   "type": "AlchemicaFotoPrepara",
+   "pos": [
+    750,
+    40
+   ],
+   "size": [
+    360,
+    300
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "foto",
+     "type": "IMAGE",
+     "link": 3
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 5
+    },
+    {
+     "name": "maschera",
+     "type": "MASK",
+     "link": 4
+    },
+    {
+     "name": "modello_upscale",
+     "type": "UPSCALE_MODEL",
+     "link": 6
+    }
+   ],
+   "outputs": [
+    {
+     "name": "latent",
+     "type": "LATENT",
+     "links": [
+      8
+     ]
+    },
+    {
+     "name": "foto",
+     "type": "IMAGE",
+     "links": [
+      12,
+      16
+     ]
+    },
+    {
+     "name": "maschera",
+     "type": "MASK",
+     "links": [
+      14
+     ]
+    },
+    {
+     "name": "denoise",
+     "type": "FLOAT",
+     "links": [
+      9
+     ]
+    },
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [
+      18
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "AlchemicaFotoPrepara"
+   },
+   "title": "⚗ 2 · COSA FARE",
+   "widgets_values": [
+    "migliora (ritocco leggero)",
+    -1.0,
+    0.0,
+    12,
+    24
+   ],
+   "color": "#323",
+   "bgcolor": "#535"
+  },
+  {
+   "id": 7,
+   "type": "CLIPTextEncode",
+   "pos": [
+    750,
+    380
+   ],
+   "size": [
+    360,
+    170
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 2
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      7
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPTextEncode"
+   },
+   "title": "3 · PROMPT (cosa vuoi; per migliorare lascialo cosi')",
+   "widgets_values": [
+    "high quality photograph, natural skin texture with fine pores, sharp focus, detailed eyes, true-to-life colour, clean natural light"
+   ],
+   "color": "#223",
+   "bgcolor": "#335"
+  },
+  {
+   "id": 8,
+   "type": "AlchemicaKrea",
+   "pos": [
+    1140,
+    40
+   ],
+   "size": [
+    330,
+    330
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 1
+    },
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 7
+    },
+    {
+     "name": "latent_image",
+     "type": "LATENT",
+     "link": 8
+    },
+    {
+     "name": "denoise",
+     "type": "FLOAT",
+     "widget": {
+      "name": "denoise"
+     },
+     "link": 9
+    }
+   ],
+   "outputs": [
+    {
+     "name": "latent",
+     "type": "LATENT",
+     "links": [
+      10
+     ]
+    },
+    {
+     "name": "grafico_sigma",
+     "type": "IMAGE",
+     "links": []
+    },
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": []
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "AlchemicaKrea"
+   },
+   "title": "⚗ AlchemicaKrea",
+   "widgets_values": [
+    12345,
+    "randomize",
+    "(auto)",
+    "veloce",
+    false,
+    -1.0,
+    0.12,
+    0.6,
+    1.0
+   ]
+  },
+  {
+   "id": 9,
+   "type": "VAEDecodeTiled",
+   "pos": [
+    1140,
+    400
+   ],
+   "size": [
+    330,
+    150
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "samples",
+     "type": "LATENT",
+     "link": 10
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 11
+    }
+   ],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      13
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAEDecodeTiled"
+   },
+   "widgets_values": [
+    512,
+    64,
+    64,
+    8
+   ]
+  },
+  {
+   "id": 10,
+   "type": "AlchemicaFotoRicomponi",
+   "pos": [
+    1140,
+    590
+   ],
+   "size": [
+    330,
+    100
+   ],
+   "flags": {},
+   "order": 10,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "originale",
+     "type": "IMAGE",
+     "link": 12
+    },
+    {
+     "name": "nuova",
+     "type": "IMAGE",
+     "link": 13
+    },
+    {
+     "name": "maschera",
+     "type": "MASK",
+     "link": 14
+    }
+   ],
+   "outputs": [
+    {
+     "name": "immagine",
+     "type": "IMAGE",
+     "links": [
+      15,
+      17
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "AlchemicaFotoRicomponi"
+   },
+   "title": "⚗ ricomponi (fuori dalla maschera resta identica)"
+  },
+  {
+   "id": 11,
+   "type": "SaveImage",
+   "pos": [
+    1500,
+    40
+   ],
+   "size": [
+    460,
+    640
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 15
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveImage"
+   },
+   "title": "⚗ RISULTATO",
+   "widgets_values": [
+    "ALCHEMICA/FOTO"
+   ]
+  },
+  {
+   "id": 12,
+   "type": "Image Comparer (rgthree)",
+   "pos": [
+    1990,
+    40
+   ],
+   "size": [
+    460,
+    640
+   ],
+   "flags": {},
+   "order": 12,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "image_a",
+     "type": "IMAGE",
+     "link": 16
+    },
+    {
+     "name": "image_b",
+     "type": "IMAGE",
+     "link": 17
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "Image Comparer (rgthree)",
+    "comparer_mode": "Slide"
+   },
+   "title": "PRIMA / DOPO (scorri col mouse)",
+   "widgets_values": []
+  },
+  {
+   "id": 13,
+   "type": "PreviewAny",
+   "pos": [
+    750,
+    590
+   ],
+   "size": [
+    360,
+    160
+   ],
+   "flags": {},
+   "order": 13,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "source",
+     "type": "*",
+     "link": 18
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewAny"
+   },
+   "title": "report",
+   "widgets_values": []
+  },
+  {
+   "id": 14,
+   "type": "Note",
+   "pos": [
+    20,
+    490
+   ],
+   "size": [
+    330,
+    560
+   ],
+   "flags": {},
+   "order": 14,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "Note"
+   },
+   "title": "⚗ LEGGIMI",
+   "widgets_values": [
+    "⚗ FOTO — RAPIDO\n\n1 FOTO: carica la foto.\n   Per cambiare SOLO un particolare (occhi,\n   capelli, una mano): tasto destro sulla foto\n   > Open in MaskEditor, dipingi la zona, Save.\n   Il resto resta identico al pixel.\n   Per tornare alla foto intera: cancella la\n   maschera (o ricarica la foto).\n\n2 COSA FARE (modo):\n   migliora      0.22  stessa foto, piu' pulita\n   ricostruisci  0.40  nuovo dettaglio\n   cambia        0.60  applica il prompt, stessa posa\n   trasforma     0.80  la foto e' solo una base\n   forza: -1 = dal modo, oppure il valore tuo.\n   megapixel: 0 = misura della foto.\n   Per INGRANDIRE metti 2-4 (usa il modello\n   di upscale e poi Krea ridisegna il dettaglio).\n\n3 PROMPT: per migliorare lascialo cosi'.\n   Per cambiare scrivi COSA vuoi, es. con la\n   maschera sugli occhi: 'bright green eyes,\n   detailed iris'.\n\nSeed casuale: ogni clic una versione nuova.\nPRIMA/DOPO: scorri col mouse sull'immagine."
+   ]
+  }
+ ],
+ "links": [
+  [
+   1,
+   1,
+   0,
+   8,
+   0,
+   "MODEL"
+  ],
+  [
+   2,
+   2,
+   0,
+   7,
+   0,
+   "CLIP"
+  ],
+  [
+   3,
+   4,
+   0,
+   6,
+   0,
+   "IMAGE"
+  ],
+  [
+   4,
+   4,
+   1,
+   6,
+   2,
+   "MASK"
+  ],
+  [
+   5,
+   3,
+   0,
+   6,
+   1,
+   "VAE"
+  ],
+  [
+   6,
+   5,
+   0,
+   6,
+   3,
+   "UPSCALE_MODEL"
+  ],
+  [
+   7,
+   7,
+   0,
+   8,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   8,
+   6,
+   0,
+   8,
+   2,
+   "LATENT"
+  ],
+  [
+   9,
+   6,
+   3,
+   8,
+   3,
+   "FLOAT"
+  ],
+  [
+   10,
+   8,
+   0,
+   9,
+   0,
+   "LATENT"
+  ],
+  [
+   11,
+   3,
+   0,
+   9,
+   1,
+   "VAE"
+  ],
+  [
+   12,
+   6,
+   1,
+   10,
+   0,
+   "IMAGE"
+  ],
+  [
+   13,
+   9,
+   0,
+   10,
+   1,
+   "IMAGE"
+  ],
+  [
+   14,
+   6,
+   2,
+   10,
+   2,
+   "MASK"
+  ],
+  [
+   15,
+   10,
+   0,
+   11,
+   0,
+   "IMAGE"
+  ],
+  [
+   16,
+   6,
+   1,
+   12,
+   0,
+   "IMAGE"
+  ],
+  [
+   17,
+   10,
+   0,
+   12,
+   1,
+   "IMAGE"
+  ],
+  [
+   18,
+   6,
+   4,
+   13,
+   0,
+   "STRING"
+  ]
+ ],
+ "groups": [],
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.6,
+   "offset": [
+    0,
+    0
+   ]
+  }
+ },
+ "version": 0.4
+}
