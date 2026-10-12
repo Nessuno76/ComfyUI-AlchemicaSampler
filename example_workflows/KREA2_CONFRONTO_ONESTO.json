@@ -1,0 +1,2100 @@
+{
+ "id": "c228f542-b0a3-49ab-967f-ef06ced8c4ee",
+ "revision": 0,
+ "last_node_id": 40,
+ "last_link_id": 27,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "AlchemicaLoadKrea2",
+   "pos": [
+    30,
+    330
+   ],
+   "size": [
+    420,
+    170
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [
+    {
+     "label": "unet_name",
+     "name": "unet_name",
+     "type": "COMBO",
+     "widget": {
+      "name": "unet_name"
+     },
+     "link": null
+    },
+    {
+     "label": "weight_dtype",
+     "name": "weight_dtype",
+     "type": "COMBO",
+     "widget": {
+      "name": "weight_dtype"
+     },
+     "link": null
+    },
+    {
+     "label": "clip_name",
+     "name": "clip_name",
+     "type": "COMBO",
+     "widget": {
+      "name": "clip_name"
+     },
+     "link": null
+    },
+    {
+     "label": "vae_name",
+     "name": "vae_name",
+     "type": "COMBO",
+     "widget": {
+      "name": "vae_name"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "label": "model",
+     "name": "model",
+     "type": "MODEL",
+     "links": [
+      1
+     ]
+    },
+    {
+     "label": "clip",
+     "name": "clip",
+     "type": "CLIP",
+     "links": [
+      2
+     ]
+    },
+    {
+     "label": "vae",
+     "name": "vae",
+     "type": "VAE",
+     "links": [
+      3
+     ]
+    }
+   ],
+   "properties": {
+    "cnr_id": "comfyui-alchemicasampler",
+    "Node name for S&R": "AlchemicaLoadKrea2"
+   },
+   "widgets_values": [
+    "krea2_turbo_nvfp4.safetensors",
+    "default",
+    "qwen3vl_4b_fp8_scaled.safetensors",
+    "qwen_image_vae.safetensors"
+   ],
+   "widgets_values_named": {
+    "unet_name": "krea2_turbo_nvfp4.safetensors",
+    "weight_dtype": "default",
+    "clip_name": "qwen3vl_4b_fp8_scaled.safetensors",
+    "vae_name": "qwen_image_vae.safetensors"
+   },
+   "title": "⚗ I · Load Krea 2",
+   "color": "#1f3a5a",
+   "bgcolor": "#2b4f78"
+  },
+  {
+   "id": 2,
+   "type": "AlchemicaLoraLoader",
+   "pos": [
+    30,
+    540
+   ],
+   "size": [
+    420,
+    400
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [
+    {
+     "label": "model",
+     "name": "model",
+     "type": "MODEL",
+     "link": 1
+    },
+    {
+     "label": "clip",
+     "name": "clip",
+     "shape": 7,
+     "type": "CLIP",
+     "link": 2
+    },
+    {
+     "label": "pass",
+     "name": "pass_1",
+     "shape": 7,
+     "type": "*",
+     "link": 3
+    },
+    {
+     "label": "lora_1",
+     "name": "lora_1",
+     "type": "COMBO",
+     "widget": {
+      "name": "lora_1"
+     },
+     "link": null
+    },
+    {
+     "label": "strength_1",
+     "name": "strength_1",
+     "type": "FLOAT",
+     "widget": {
+      "name": "strength_1"
+     },
+     "link": null
+    },
+    {
+     "label": "lora_2",
+     "name": "lora_2",
+     "type": "COMBO",
+     "widget": {
+      "name": "lora_2"
+     },
+     "link": null
+    },
+    {
+     "label": "strength_2",
+     "name": "strength_2",
+     "type": "FLOAT",
+     "widget": {
+      "name": "strength_2"
+     },
+     "link": null
+    },
+    {
+     "label": "lora_3",
+     "name": "lora_3",
+     "type": "COMBO",
+     "widget": {
+      "name": "lora_3"
+     },
+     "link": null
+    },
+    {
+     "label": "strength_3",
+     "name": "strength_3",
+     "type": "FLOAT",
+     "widget": {
+      "name": "strength_3"
+     },
+     "link": null
+    },
+    {
+     "label": "lora_4",
+     "name": "lora_4",
+     "type": "COMBO",
+     "widget": {
+      "name": "lora_4"
+     },
+     "link": null
+    },
+    {
+     "label": "strength_4",
+     "name": "strength_4",
+     "type": "FLOAT",
+     "widget": {
+      "name": "strength_4"
+     },
+     "link": null
+    },
+    {
+     "label": "lora_5",
+     "name": "lora_5",
+     "type": "COMBO",
+     "widget": {
+      "name": "lora_5"
+     },
+     "link": null
+    },
+    {
+     "label": "strength_5",
+     "name": "strength_5",
+     "type": "FLOAT",
+     "widget": {
+      "name": "strength_5"
+     },
+     "link": null
+    },
+    {
+     "label": "lora_6",
+     "name": "lora_6",
+     "type": "COMBO",
+     "widget": {
+      "name": "lora_6"
+     },
+     "link": null
+    },
+    {
+     "label": "strength_6",
+     "name": "strength_6",
+     "type": "FLOAT",
+     "widget": {
+      "name": "strength_6"
+     },
+     "link": null
+    },
+    {
+     "label": "strength_clip",
+     "name": "strength_clip",
+     "shape": 7,
+     "type": "FLOAT",
+     "widget": {
+      "name": "strength_clip"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "label": "model",
+     "name": "model",
+     "type": "MODEL",
+     "links": [
+      4
+     ]
+    },
+    {
+     "label": "clip",
+     "name": "clip",
+     "type": "CLIP",
+     "links": [
+      5
+     ]
+    },
+    {
+     "label": "pass",
+     "name": "pass_1",
+     "type": "*",
+     "links": [
+      6
+     ]
+    }
+   ],
+   "properties": {
+    "cnr_id": "comfyui-alchemicasampler",
+    "Node name for S&R": "AlchemicaLoraLoader"
+   },
+   "widgets_values": [
+    "(none)",
+    1,
+    "(none)",
+    1,
+    "(none)",
+    1,
+    "(none)",
+    1,
+    "(none)",
+    1,
+    "(none)",
+    1,
+    1
+   ],
+   "widgets_values_named": {
+    "lora_1": "(none)",
+    "strength_1": 1,
+    "lora_2": "(none)",
+    "strength_2": 1,
+    "lora_3": "(none)",
+    "strength_3": 1,
+    "lora_4": "(none)",
+    "strength_4": 1,
+    "lora_5": "(none)",
+    "strength_5": 1,
+    "lora_6": "(none)",
+    "strength_6": 1,
+    "strength_clip": 1
+   },
+   "title": "⚗ II · LoRA Stack",
+   "color": "#1f3a5a",
+   "bgcolor": "#2b4f78"
+  },
+  {
+   "id": 3,
+   "type": "AlchemicaPromptStudio",
+   "pos": [
+    530,
+    330
+   ],
+   "size": [
+    470,
+    960
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [
+    {
+     "label": "model",
+     "name": "model",
+     "type": "MODEL",
+     "link": 4
+    },
+    {
+     "label": "clip",
+     "name": "clip",
+     "type": "CLIP",
+     "link": 5
+    },
+    {
+     "label": "vae",
+     "name": "vae",
+     "shape": 7,
+     "type": "VAE",
+     "link": 6
+    },
+    {
+     "label": "latent",
+     "name": "latent",
+     "shape": 7,
+     "type": "LATENT",
+     "link": null
+    },
+    {
+     "label": "text_in",
+     "name": "text_in",
+     "shape": 7,
+     "type": "STRING",
+     "link": null
+    },
+    {
+     "label": "image",
+     "name": "image",
+     "shape": 7,
+     "type": "IMAGE",
+     "link": null
+    },
+    {
+     "label": "pass",
+     "name": "pass_1",
+     "shape": 7,
+     "type": "*",
+     "link": null
+    },
+    {
+     "label": "mode",
+     "name": "mode",
+     "type": "COMBO",
+     "widget": {
+      "name": "mode"
+     },
+     "link": null
+    },
+    {
+     "label": "text",
+     "name": "text",
+     "type": "STRING",
+     "widget": {
+      "name": "text"
+     },
+     "link": null
+    },
+    {
+     "label": "detail",
+     "name": "detail",
+     "type": "STRING",
+     "widget": {
+      "name": "detail"
+     },
+     "link": null
+    },
+    {
+     "label": "negative",
+     "name": "negative",
+     "type": "STRING",
+     "widget": {
+      "name": "negative"
+     },
+     "link": null
+    },
+    {
+     "label": "text_as",
+     "name": "text_as",
+     "type": "COMBO",
+     "widget": {
+      "name": "text_as"
+     },
+     "link": null
+    },
+    {
+     "label": "line",
+     "name": "line",
+     "type": "INT",
+     "widget": {
+      "name": "line"
+     },
+     "link": null
+    },
+    {
+     "label": "example",
+     "name": "example",
+     "type": "COMBO",
+     "widget": {
+      "name": "example"
+     },
+     "link": null
+    },
+    {
+     "label": "seed",
+     "name": "seed",
+     "type": "INT",
+     "widget": {
+      "name": "seed"
+     },
+     "link": null
+    },
+    {
+     "label": "style",
+     "name": "style",
+     "type": "COMBO",
+     "widget": {
+      "name": "style"
+     },
+     "link": null
+    },
+    {
+     "label": "use_ollama",
+     "name": "use_ollama",
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "use_ollama"
+     },
+     "link": null
+    },
+    {
+     "label": "ollama_model",
+     "name": "ollama_model",
+     "type": "COMBO",
+     "widget": {
+      "name": "ollama_model"
+     },
+     "link": null
+    },
+    {
+     "label": "ollama_url",
+     "name": "ollama_url",
+     "type": "STRING",
+     "widget": {
+      "name": "ollama_url"
+     },
+     "link": null
+    },
+    {
+     "label": "unload_ollama",
+     "name": "unload_ollama",
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "unload_ollama"
+     },
+     "link": null
+    },
+    {
+     "label": "show_llm_options",
+     "name": "show_llm_options",
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "show_llm_options"
+     },
+     "link": null
+    },
+    {
+     "label": "words",
+     "name": "words",
+     "type": "INT",
+     "widget": {
+      "name": "words"
+     },
+     "link": null
+    },
+    {
+     "label": "creativity",
+     "name": "creativity",
+     "type": "FLOAT",
+     "widget": {
+      "name": "creativity"
+     },
+     "link": null
+    },
+    {
+     "label": "skin",
+     "name": "skin",
+     "type": "COMBO",
+     "widget": {
+      "name": "skin"
+     },
+     "link": null
+    },
+    {
+     "label": "instructions",
+     "name": "instructions",
+     "type": "STRING",
+     "widget": {
+      "name": "instructions"
+     },
+     "link": null
+    },
+    {
+     "label": "max_tokens",
+     "name": "max_tokens",
+     "type": "INT",
+     "widget": {
+      "name": "max_tokens"
+     },
+     "link": null
+    },
+    {
+     "label": "attention_guidance",
+     "name": "attention_guidance",
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "attention_guidance"
+     },
+     "link": null
+    },
+    {
+     "label": "nag_scale",
+     "name": "nag_scale",
+     "type": "FLOAT",
+     "widget": {
+      "name": "nag_scale"
+     },
+     "link": null
+    },
+    {
+     "label": "nag_tau",
+     "name": "nag_tau",
+     "type": "FLOAT",
+     "widget": {
+      "name": "nag_tau"
+     },
+     "link": null
+    },
+    {
+     "label": "nag_alpha",
+     "name": "nag_alpha",
+     "type": "FLOAT",
+     "widget": {
+      "name": "nag_alpha"
+     },
+     "link": null
+    },
+    {
+     "label": "nag_blocks",
+     "name": "nag_blocks",
+     "type": "STRING",
+     "widget": {
+      "name": "nag_blocks"
+     },
+     "link": null
+    },
+    {
+     "label": "nag_sigma_start",
+     "name": "nag_sigma_start",
+     "type": "FLOAT",
+     "widget": {
+      "name": "nag_sigma_start"
+     },
+     "link": null
+    },
+    {
+     "label": "nag_sigma_end",
+     "name": "nag_sigma_end",
+     "type": "FLOAT",
+     "widget": {
+      "name": "nag_sigma_end"
+     },
+     "link": null
+    },
+    {
+     "label": "structure",
+     "name": "structure",
+     "type": "COMBO",
+     "widget": {
+      "name": "structure"
+     },
+     "link": null
+    },
+    {
+     "label": "structure_scale",
+     "name": "structure_scale",
+     "type": "FLOAT",
+     "widget": {
+      "name": "structure_scale"
+     },
+     "link": null
+    },
+    {
+     "label": "structure_blocks",
+     "name": "structure_blocks",
+     "type": "STRING",
+     "widget": {
+      "name": "structure_blocks"
+     },
+     "link": null
+    },
+    {
+     "label": "seg_blur",
+     "name": "seg_blur",
+     "type": "FLOAT",
+     "widget": {
+      "name": "seg_blur"
+     },
+     "link": null
+    },
+    {
+     "label": "structure_sigma_start",
+     "name": "structure_sigma_start",
+     "type": "FLOAT",
+     "widget": {
+      "name": "structure_sigma_start"
+     },
+     "link": null
+    },
+    {
+     "label": "structure_sigma_end",
+     "name": "structure_sigma_end",
+     "type": "FLOAT",
+     "widget": {
+      "name": "structure_sigma_end"
+     },
+     "link": null
+    },
+    {
+     "label": "show_resolution",
+     "name": "show_resolution",
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "show_resolution"
+     },
+     "link": null
+    },
+    {
+     "label": "aspect",
+     "name": "aspect",
+     "type": "COMBO",
+     "widget": {
+      "name": "aspect"
+     },
+     "link": null
+    },
+    {
+     "label": "megapixels",
+     "name": "megapixels",
+     "type": "FLOAT",
+     "widget": {
+      "name": "megapixels"
+     },
+     "link": null
+    },
+    {
+     "label": "batch_size",
+     "name": "batch_size",
+     "type": "INT",
+     "widget": {
+      "name": "batch_size"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "label": "model",
+     "name": "model",
+     "type": "MODEL",
+     "links": [
+      7,
+      14,
+      21
+     ]
+    },
+    {
+     "label": "positive",
+     "name": "positive",
+     "type": "CONDITIONING",
+     "links": [
+      8,
+      15,
+      22
+     ]
+    },
+    {
+     "label": "latent",
+     "name": "latent",
+     "type": "LATENT",
+     "links": [
+      9,
+      16,
+      23
+     ]
+    },
+    {
+     "label": "negative",
+     "name": "negative",
+     "type": "CONDITIONING",
+     "links": [
+      10,
+      17,
+      24
+     ]
+    },
+    {
+     "label": "vae",
+     "name": "vae",
+     "type": "VAE",
+     "links": [
+      12,
+      18,
+      25
+     ]
+    },
+    {
+     "label": "clip",
+     "name": "clip",
+     "type": "CLIP",
+     "links": null
+    },
+    {
+     "label": "prompt",
+     "name": "prompt",
+     "type": "STRING",
+     "links": null
+    },
+    {
+     "label": "pass",
+     "name": "pass_1",
+     "type": "*",
+     "links": null
+    }
+   ],
+   "properties": {
+    "cnr_id": "comfyui-alchemicasampler",
+    "Node name for S&R": "AlchemicaPromptStudio"
+   },
+   "widgets_values": [
+    "as written",
+    "a candid photograph of a woman in her thirties reading a book at a cafe window, soft afternoon light, natural skin texture, linen shirt, shallow depth of field, 85mm lens",
+    "",
+    "",
+    "as written",
+    0,
+    "increment",
+    "portrait · window light",
+    0,
+    "increment",
+    "realistic photo",
+    false,
+    "qwen2.5:7b",
+    "http://127.0.0.1:11434",
+    true,
+    false,
+    80,
+    0,
+    "smooth (no body hair)",
+    "",
+    400,
+    false,
+    3,
+    2.5,
+    0.25,
+    "all",
+    -1,
+    0,
+    "off",
+    0,
+    "8-19",
+    10,
+    -1,
+    0,
+    true,
+    "2:3",
+    2.5,
+    1
+   ],
+   "widgets_values_named": {
+    "mode": "generate from idea",
+    "text": "close portrait of a woman in her thirties by a window, soft morning light",
+    "detail": "",
+    "negative": "",
+    "text_as": "idea → generate",
+    "line": 0,
+    "control_after_generate": "increment",
+    "example": "portrait · window light",
+    "seed": 0,
+    "style": "realistic photo",
+    "use_ollama": false,
+    "ollama_model": "R4C3R/mistral-7b-instruct-v0.3-heretic:q5_k_m",
+    "ollama_url": "http://127.0.0.1:11434",
+    "unload_ollama": true,
+    "show_llm_options": false,
+    "words": 80,
+    "creativity": 0,
+    "skin": "smooth (no body hair)",
+    "instructions": "",
+    "max_tokens": 400,
+    "attention_guidance": true,
+    "nag_scale": 3,
+    "nag_tau": 2.5,
+    "nag_alpha": 0.25,
+    "nag_blocks": "all",
+    "nag_sigma_start": -1,
+    "nag_sigma_end": 0,
+    "structure": "off",
+    "structure_scale": 0,
+    "structure_blocks": "8-19",
+    "seg_blur": 10,
+    "structure_sigma_start": -1,
+    "structure_sigma_end": 0,
+    "show_resolution": true,
+    "aspect": "2:3",
+    "megapixels": 2.5,
+    "batch_size": 1
+   },
+   "title": "⚗ II · Prompt (same text for all three)",
+   "color": "#1f4a3a",
+   "bgcolor": "#2a654f"
+  },
+  {
+   "id": 10,
+   "type": "KSampler",
+   "pos": [
+    1090,
+    60
+   ],
+   "size": [
+    380,
+    262
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "title": "A · ComfyUI KSampler (euler + simple, 8 steps)",
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 7
+    },
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 8
+    },
+    {
+     "name": "negative",
+     "type": "CONDITIONING",
+     "link": 10
+    },
+    {
+     "name": "latent_image",
+     "type": "LATENT",
+     "link": 9
+    }
+   ],
+   "outputs": [
+    {
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      11
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "cnr_id": "comfy-core",
+    "Node name for S&R": "KSampler"
+   },
+   "widgets_values": [
+    424242,
+    "fixed",
+    8,
+    1.0,
+    "euler",
+    "simple",
+    1.0
+   ],
+   "color": "#4a3a1f",
+   "bgcolor": "#654f2a"
+  },
+  {
+   "id": 11,
+   "type": "VAEDecodeTiled",
+   "pos": [
+    1500,
+    60
+   ],
+   "size": [
+    300,
+    150
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "samples",
+     "type": "LATENT",
+     "link": 11
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 12
+    }
+   ],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      13
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "cnr_id": "comfy-core",
+    "Node name for S&R": "VAEDecodeTiled"
+   },
+   "widgets_values": [
+    512,
+    64,
+    64,
+    8
+   ]
+  },
+  {
+   "id": 12,
+   "type": "SaveImage",
+   "pos": [
+    1820,
+    60
+   ],
+   "size": [
+    420,
+    380
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "title": "A · output",
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 13
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "cnr_id": "comfy-core",
+    "Node name for S&R": "SaveImage"
+   },
+   "widgets_values": [
+    "CONFRONTO_ONESTO/A_native"
+   ]
+  },
+  {
+   "id": 20,
+   "type": "AlchemicaKSamplerFlex",
+   "pos": [
+    1090,
+    760
+   ],
+   "size": [
+    470,
+    640
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [
+    {
+     "label": "model",
+     "name": "model",
+     "type": "MODEL",
+     "link": 14
+    },
+    {
+     "label": "positive",
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 15
+    },
+    {
+     "label": "latent_image",
+     "name": "latent_image",
+     "type": "LATENT",
+     "link": 16
+    },
+    {
+     "label": "negative",
+     "name": "negative",
+     "shape": 7,
+     "type": "CONDITIONING",
+     "link": 17
+    },
+    {
+     "label": "vae",
+     "name": "vae",
+     "shape": 7,
+     "type": "VAE",
+     "link": 18
+    },
+    {
+     "label": "refiner_model",
+     "name": "refiner_model",
+     "shape": 7,
+     "type": "MODEL",
+     "link": null
+    },
+    {
+     "label": "opts",
+     "name": "opts",
+     "shape": 7,
+     "type": "ALCHEMICA_OPTS",
+     "link": null
+    },
+    {
+     "label": "seed",
+     "name": "seed",
+     "type": "INT",
+     "widget": {
+      "name": "seed"
+     },
+     "link": null
+    },
+    {
+     "label": "sampler_name",
+     "name": "sampler_name",
+     "type": "COMBO",
+     "widget": {
+      "name": "sampler_name"
+     },
+     "link": null
+    },
+    {
+     "label": "scheduler",
+     "name": "scheduler",
+     "type": "COMBO",
+     "widget": {
+      "name": "scheduler"
+     },
+     "link": null
+    },
+    {
+     "label": "steps",
+     "name": "steps",
+     "type": "INT",
+     "widget": {
+      "name": "steps"
+     },
+     "link": null
+    },
+    {
+     "label": "cfg",
+     "name": "cfg",
+     "type": "FLOAT",
+     "widget": {
+      "name": "cfg"
+     },
+     "link": null
+    },
+    {
+     "label": "profile",
+     "name": "profile",
+     "type": "COMBO",
+     "widget": {
+      "name": "profile"
+     },
+     "link": null
+    },
+    {
+     "label": "denoise",
+     "name": "denoise",
+     "type": "FLOAT",
+     "widget": {
+      "name": "denoise"
+     },
+     "link": null
+    },
+    {
+     "label": "two_stage",
+     "name": "two_stage",
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "two_stage"
+     },
+     "link": null
+    },
+    {
+     "label": "stage1_steps",
+     "name": "stage1_steps",
+     "type": "INT",
+     "widget": {
+      "name": "stage1_steps"
+     },
+     "link": null
+    },
+    {
+     "label": "redraw",
+     "name": "redraw",
+     "type": "FLOAT",
+     "widget": {
+      "name": "redraw"
+     },
+     "link": null
+    },
+    {
+     "label": "detail",
+     "name": "detail",
+     "type": "FLOAT",
+     "widget": {
+      "name": "detail"
+     },
+     "link": null
+    },
+    {
+     "label": "variety",
+     "name": "variety",
+     "type": "FLOAT",
+     "widget": {
+      "name": "variety"
+     },
+     "link": null
+    },
+    {
+     "label": "restart_steps",
+     "name": "restart_steps",
+     "type": "INT",
+     "widget": {
+      "name": "restart_steps"
+     },
+     "link": null
+    },
+    {
+     "label": "contraction",
+     "name": "contraction",
+     "type": "FLOAT",
+     "widget": {
+      "name": "contraction"
+     },
+     "link": null
+    },
+    {
+     "label": "shift",
+     "name": "shift",
+     "type": "FLOAT",
+     "widget": {
+      "name": "shift"
+     },
+     "link": null
+    },
+    {
+     "label": "handoff_k",
+     "name": "handoff_k",
+     "type": "FLOAT",
+     "widget": {
+      "name": "handoff_k"
+     },
+     "link": null
+    },
+    {
+     "label": "calibration",
+     "name": "calibration",
+     "type": "COMBO",
+     "widget": {
+      "name": "calibration"
+     },
+     "link": null
+    },
+    {
+     "label": "lowfreq_anchor",
+     "name": "lowfreq_anchor",
+     "type": "FLOAT",
+     "widget": {
+      "name": "lowfreq_anchor"
+     },
+     "link": null
+    },
+    {
+     "label": "preview_method",
+     "name": "preview_method",
+     "shape": 7,
+     "type": "COMBO",
+     "widget": {
+      "name": "preview_method"
+     },
+     "link": null
+    },
+    {
+     "label": "degrid",
+     "name": "degrid",
+     "shape": 7,
+     "type": "FLOAT",
+     "widget": {
+      "name": "degrid"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "label": "latent",
+     "name": "latent",
+     "type": "LATENT",
+     "links": null
+    },
+    {
+     "label": "sigma_plot",
+     "name": "sigma_plot",
+     "type": "IMAGE",
+     "links": null
+    },
+    {
+     "label": "report",
+     "name": "report",
+     "type": "STRING",
+     "links": [
+      20
+     ]
+    },
+    {
+     "label": "image",
+     "name": "image",
+     "type": "IMAGE",
+     "links": [
+      19
+     ]
+    }
+   ],
+   "properties": {
+    "cnr_id": "comfyui-alchemicasampler",
+    "Node name for S&R": "AlchemicaKSamplerFlex"
+   },
+   "widgets_values": [
+    424242,
+    "fixed",
+    "alchemica_euler",
+    "alchemica_calibrated",
+    8,
+    1.0,
+    "(auto)",
+    1.0,
+    false,
+    4,
+    -1,
+    0.0,
+    0.0,
+    0,
+    1.0,
+    0.0,
+    1.0,
+    "v1 (1.0 behaviour)",
+    0.0,
+    "latent2rgb (fast)",
+    0.0
+   ],
+   "widgets_values_named": {
+    "seed": 0,
+    "control_after_generate": "randomize",
+    "sampler_name": "alchemica_euler_2m",
+    "scheduler": "alchemica_calibrated",
+    "steps": 8,
+    "cfg": 1,
+    "profile": "(auto)",
+    "denoise": 1,
+    "two_stage": true,
+    "stage1_steps": 4,
+    "redraw": -1,
+    "detail": 0.12,
+    "variety": 0.6,
+    "restart_steps": 2,
+    "contraction": 0.85,
+    "shift": 0,
+    "handoff_k": 0,
+    "calibration": "v2 (solver order + smoothing + half-res stage 1)",
+    "lowfreq_anchor": 0,
+    "preview_method": "latent2rgb (fast)",
+    "degrid": 2
+   },
+   "title": "B · only the calibrated schedule",
+   "color": "#3d2559",
+   "bgcolor": "#523478"
+  },
+  {
+   "id": 21,
+   "type": "SaveImage",
+   "pos": [
+    1590,
+    760
+   ],
+   "size": [
+    420,
+    380
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 0,
+   "title": "B · output",
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 19
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "cnr_id": "comfy-core",
+    "Node name for S&R": "SaveImage"
+   },
+   "widgets_values": [
+    "CONFRONTO_ONESTO/B_calibrated_schedule"
+   ]
+  },
+  {
+   "id": 22,
+   "type": "PreviewAny",
+   "title": "report B",
+   "pos": [
+    1590,
+    1160
+   ],
+   "size": [
+    420,
+    200
+   ],
+   "flags": {
+    "collapsed": false
+   },
+   "order": 8,
+   "mode": 0,
+   "color": "#3d2559",
+   "bgcolor": "#523478",
+   "inputs": [
+    {
+     "name": "source",
+     "type": "*",
+     "link": 20
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "cnr_id": "comfy-core",
+    "Node name for S&R": "PreviewAny"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 30,
+   "type": "AlchemicaKSamplerFlex",
+   "pos": [
+    1090,
+    1730
+   ],
+   "size": [
+    470,
+    640
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "inputs": [
+    {
+     "label": "model",
+     "name": "model",
+     "type": "MODEL",
+     "link": 21
+    },
+    {
+     "label": "positive",
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 22
+    },
+    {
+     "label": "latent_image",
+     "name": "latent_image",
+     "type": "LATENT",
+     "link": 23
+    },
+    {
+     "label": "negative",
+     "name": "negative",
+     "shape": 7,
+     "type": "CONDITIONING",
+     "link": 24
+    },
+    {
+     "label": "vae",
+     "name": "vae",
+     "shape": 7,
+     "type": "VAE",
+     "link": 25
+    },
+    {
+     "label": "refiner_model",
+     "name": "refiner_model",
+     "shape": 7,
+     "type": "MODEL",
+     "link": null
+    },
+    {
+     "label": "opts",
+     "name": "opts",
+     "shape": 7,
+     "type": "ALCHEMICA_OPTS",
+     "link": null
+    },
+    {
+     "label": "seed",
+     "name": "seed",
+     "type": "INT",
+     "widget": {
+      "name": "seed"
+     },
+     "link": null
+    },
+    {
+     "label": "sampler_name",
+     "name": "sampler_name",
+     "type": "COMBO",
+     "widget": {
+      "name": "sampler_name"
+     },
+     "link": null
+    },
+    {
+     "label": "scheduler",
+     "name": "scheduler",
+     "type": "COMBO",
+     "widget": {
+      "name": "scheduler"
+     },
+     "link": null
+    },
+    {
+     "label": "steps",
+     "name": "steps",
+     "type": "INT",
+     "widget": {
+      "name": "steps"
+     },
+     "link": null
+    },
+    {
+     "label": "cfg",
+     "name": "cfg",
+     "type": "FLOAT",
+     "widget": {
+      "name": "cfg"
+     },
+     "link": null
+    },
+    {
+     "label": "profile",
+     "name": "profile",
+     "type": "COMBO",
+     "widget": {
+      "name": "profile"
+     },
+     "link": null
+    },
+    {
+     "label": "denoise",
+     "name": "denoise",
+     "type": "FLOAT",
+     "widget": {
+      "name": "denoise"
+     },
+     "link": null
+    },
+    {
+     "label": "two_stage",
+     "name": "two_stage",
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "two_stage"
+     },
+     "link": null
+    },
+    {
+     "label": "stage1_steps",
+     "name": "stage1_steps",
+     "type": "INT",
+     "widget": {
+      "name": "stage1_steps"
+     },
+     "link": null
+    },
+    {
+     "label": "redraw",
+     "name": "redraw",
+     "type": "FLOAT",
+     "widget": {
+      "name": "redraw"
+     },
+     "link": null
+    },
+    {
+     "label": "detail",
+     "name": "detail",
+     "type": "FLOAT",
+     "widget": {
+      "name": "detail"
+     },
+     "link": null
+    },
+    {
+     "label": "variety",
+     "name": "variety",
+     "type": "FLOAT",
+     "widget": {
+      "name": "variety"
+     },
+     "link": null
+    },
+    {
+     "label": "restart_steps",
+     "name": "restart_steps",
+     "type": "INT",
+     "widget": {
+      "name": "restart_steps"
+     },
+     "link": null
+    },
+    {
+     "label": "contraction",
+     "name": "contraction",
+     "type": "FLOAT",
+     "widget": {
+      "name": "contraction"
+     },
+     "link": null
+    },
+    {
+     "label": "shift",
+     "name": "shift",
+     "type": "FLOAT",
+     "widget": {
+      "name": "shift"
+     },
+     "link": null
+    },
+    {
+     "label": "handoff_k",
+     "name": "handoff_k",
+     "type": "FLOAT",
+     "widget": {
+      "name": "handoff_k"
+     },
+     "link": null
+    },
+    {
+     "label": "calibration",
+     "name": "calibration",
+     "type": "COMBO",
+     "widget": {
+      "name": "calibration"
+     },
+     "link": null
+    },
+    {
+     "label": "lowfreq_anchor",
+     "name": "lowfreq_anchor",
+     "type": "FLOAT",
+     "widget": {
+      "name": "lowfreq_anchor"
+     },
+     "link": null
+    },
+    {
+     "label": "preview_method",
+     "name": "preview_method",
+     "shape": 7,
+     "type": "COMBO",
+     "widget": {
+      "name": "preview_method"
+     },
+     "link": null
+    },
+    {
+     "label": "degrid",
+     "name": "degrid",
+     "shape": 7,
+     "type": "FLOAT",
+     "widget": {
+      "name": "degrid"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "label": "latent",
+     "name": "latent",
+     "type": "LATENT",
+     "links": null
+    },
+    {
+     "label": "sigma_plot",
+     "name": "sigma_plot",
+     "type": "IMAGE",
+     "links": null
+    },
+    {
+     "label": "report",
+     "name": "report",
+     "type": "STRING",
+     "links": [
+      27
+     ]
+    },
+    {
+     "label": "image",
+     "name": "image",
+     "type": "IMAGE",
+     "links": [
+      26
+     ]
+    }
+   ],
+   "properties": {
+    "cnr_id": "comfyui-alchemicasampler",
+    "Node name for S&R": "AlchemicaKSamplerFlex"
+   },
+   "widgets_values": [
+    424242,
+    "fixed",
+    "alchemica_euler_2m",
+    "alchemica_calibrated",
+    8,
+    1.0,
+    "(auto)",
+    1.0,
+    true,
+    4,
+    -1,
+    0.12,
+    0.6,
+    2,
+    0.85,
+    0.0,
+    0.0,
+    "v2 (solver order + smoothing + half-res stage 1)",
+    0.0,
+    "latent2rgb (fast)",
+    2.0
+   ],
+   "widgets_values_named": {
+    "seed": 0,
+    "control_after_generate": "randomize",
+    "sampler_name": "alchemica_euler_2m",
+    "scheduler": "alchemica_calibrated",
+    "steps": 8,
+    "cfg": 1,
+    "profile": "(auto)",
+    "denoise": 1,
+    "two_stage": true,
+    "stage1_steps": 4,
+    "redraw": -1,
+    "detail": 0.12,
+    "variety": 0.6,
+    "restart_steps": 2,
+    "contraction": 0.85,
+    "shift": 0,
+    "handoff_k": 0,
+    "calibration": "v2 (solver order + smoothing + half-res stage 1)",
+    "lowfreq_anchor": 0,
+    "preview_method": "latent2rgb (fast)",
+    "degrid": 2
+   },
+   "title": "C · full recipe (K2AM defaults)",
+   "color": "#3d2559",
+   "bgcolor": "#523478"
+  },
+  {
+   "id": 31,
+   "type": "SaveImage",
+   "pos": [
+    1590,
+    1730
+   ],
+   "size": [
+    420,
+    380
+   ],
+   "flags": {},
+   "order": 10,
+   "mode": 0,
+   "title": "C · output",
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 26
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "cnr_id": "comfy-core",
+    "Node name for S&R": "SaveImage"
+   },
+   "widgets_values": [
+    "CONFRONTO_ONESTO/C_full_recipe"
+   ]
+  },
+  {
+   "id": 32,
+   "type": "PreviewAny",
+   "title": "report C",
+   "pos": [
+    1590,
+    2130
+   ],
+   "size": [
+    420,
+    200
+   ],
+   "flags": {
+    "collapsed": false
+   },
+   "order": 11,
+   "mode": 0,
+   "color": "#3d2559",
+   "bgcolor": "#523478",
+   "inputs": [
+    {
+     "name": "source",
+     "type": "*",
+     "link": 27
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "cnr_id": "comfy-core",
+    "Node name for S&R": "PreviewAny"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 40,
+   "type": "MarkdownNote",
+   "pos": [
+    30,
+    -240
+   ],
+   "size": [
+    1900,
+    250
+   ],
+   "flags": {},
+   "order": 12,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {},
+   "widgets_values": [
+    "# ⚗ Honest comparison · same prompt, same seed, same model\n**A** ComfyUI's own KSampler (euler, `simple`, 8 steps) · **B** same Euler solver and 8 steps, but the step spacing measured on YOUR checkpoint · **C** the complete recipe of the starter workflow (two stages, detail, variety, restart, DeGrid).\n\n**How to read it.** All three branches share one Load → LoRA → Prompt chain, one latent size and one fixed seed (424242); NAG is OFF so that only the sampling differs. Open the three saved images at 100 % and compare the same crop. Read each branch's *report*: C makes more model calls than A and B, so it is slower — that is the price of the extra detail, not a free lunch.\n\n**Be fair to yourself.** Run it with 3–4 different seeds and your own prompt before you decide. Without a calibration profile B falls back to an analytic schedule (the report says so): calibrate once with `KREA2_TARATURA` first. Where A already looks right, A is right.\n\n⚗ Idea & direction: AlchemicaMente · code: Claude (Anthropic) · GPL-3.0"
+   ]
+  }
+ ],
+ "links": [
+  [
+   1,
+   1,
+   0,
+   2,
+   0,
+   "MODEL"
+  ],
+  [
+   2,
+   1,
+   1,
+   2,
+   1,
+   "CLIP"
+  ],
+  [
+   3,
+   1,
+   2,
+   2,
+   2,
+   "VAE"
+  ],
+  [
+   4,
+   2,
+   0,
+   3,
+   0,
+   "MODEL"
+  ],
+  [
+   5,
+   2,
+   1,
+   3,
+   1,
+   "CLIP"
+  ],
+  [
+   6,
+   2,
+   2,
+   3,
+   2,
+   "VAE"
+  ],
+  [
+   7,
+   3,
+   0,
+   10,
+   0,
+   "MODEL"
+  ],
+  [
+   8,
+   3,
+   1,
+   10,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   9,
+   3,
+   2,
+   10,
+   3,
+   "LATENT"
+  ],
+  [
+   10,
+   3,
+   3,
+   10,
+   2,
+   "CONDITIONING"
+  ],
+  [
+   11,
+   10,
+   0,
+   11,
+   0,
+   "LATENT"
+  ],
+  [
+   12,
+   3,
+   4,
+   11,
+   1,
+   "VAE"
+  ],
+  [
+   13,
+   11,
+   0,
+   12,
+   0,
+   "IMAGE"
+  ],
+  [
+   14,
+   3,
+   0,
+   20,
+   0,
+   "MODEL"
+  ],
+  [
+   15,
+   3,
+   1,
+   20,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   16,
+   3,
+   2,
+   20,
+   2,
+   "LATENT"
+  ],
+  [
+   17,
+   3,
+   3,
+   20,
+   3,
+   "CONDITIONING"
+  ],
+  [
+   18,
+   3,
+   4,
+   20,
+   4,
+   "VAE"
+  ],
+  [
+   19,
+   20,
+   3,
+   21,
+   0,
+   "IMAGE"
+  ],
+  [
+   20,
+   20,
+   2,
+   22,
+   0,
+   "STRING"
+  ],
+  [
+   21,
+   3,
+   0,
+   30,
+   0,
+   "MODEL"
+  ],
+  [
+   22,
+   3,
+   1,
+   30,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   23,
+   3,
+   2,
+   30,
+   2,
+   "LATENT"
+  ],
+  [
+   24,
+   3,
+   3,
+   30,
+   3,
+   "CONDITIONING"
+  ],
+  [
+   25,
+   3,
+   4,
+   30,
+   4,
+   "VAE"
+  ],
+  [
+   26,
+   30,
+   3,
+   31,
+   0,
+   "IMAGE"
+  ],
+  [
+   27,
+   30,
+   2,
+   32,
+   0,
+   "STRING"
+  ]
+ ],
+ "groups": [
+  {
+   "title": "⚗ SHARED BENCH  (model + LoRA + prompt)",
+   "bounding": [
+    10,
+    250,
+    1010,
+    1100
+   ],
+   "color": "#3f789e",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "title": "A · ComfyUI native",
+   "bounding": [
+    1070,
+    -10,
+    1100,
+    560
+   ],
+   "color": "#8A8",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "title": "B · calibrated schedule only",
+   "bounding": [
+    1070,
+    690,
+    1000,
+    880
+   ],
+   "color": "#b58b2a",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "title": "C · full recipe",
+   "bounding": [
+    1070,
+    1660,
+    1000,
+    880
+   ],
+   "color": "#a1309b",
+   "font_size": 24,
+   "flags": {}
+  }
+ ],
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.5,
+   "offset": [
+    40,
+    260
+   ]
+  },
+  "info": {
+   "name": "KREA2_CONFRONTO_ONESTO",
+   "version": "1.0",
+   "author": "AlchemicaMente (idea) · Claude by Anthropic (code)",
+   "license": "GPL-3.0",
+   "url": "https://github.com/Nessuno76/ComfyUI-AlchemicaSampler"
+  }
+ },
+ "version": 0.4
+}

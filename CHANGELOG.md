@@ -1,5 +1,14 @@
 # ⚗ Changelog
 
+## Unreleased
+
+- **⚗ Honest comparison workflow** (`KREA2_CONFRONTO_ONESTO`): the same prompt, seed and size through ComfyUI's own
+  KSampler (A), the same Euler with only the calibrated step schedule (B) and the full recipe (C), with NAG off so that
+  only the sampling differs. The README shows three runs and says plainly where each branch is better, worse or just
+  different.
+- **README rewritten** around the five-node starter line and the contents of the package; the long node reference moved
+  to `docs/REFERENCE.md`.
+
 ## 1.1.0 — 2026-10-12
 
 - **⚗ KreaAlchemicaMente (K2AM)** example workflow (`KreaAlchemicaMente_K2AM.json`): the essential linear pipeline

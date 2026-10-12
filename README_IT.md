@@ -17,6 +17,8 @@ FaceDetailer né upscale a piastrelle.
 4. Ordine d'uso: `KREA2_TARATURA.json` → `KREA2_COMPLETO.json` (o `KREA2_SEMPLICE.json`)
 5. **Per iniziare**: `KreaAlchemicaMente_K2AM.json`, la pipeline lineare essenziale Carica → LoRA → Prompt → KSampler Flex (calibrazione v2, due stadi, DeGrid) → Salva, in quattro gruppi colorati con una guida rapida
 
+**Confronto onesto**: `KREA2_CONFRONTO_ONESTO.json` fa passare lo stesso prompt, lo stesso seed e la stessa dimensione dal KSampler nativo (A), dallo stesso Euler con la sola spaziatura calibrata (B) e dalla ricetta completa (C), con NAG spento. Nel [README](README.md) trovi tre prove con le differenze descritte senza ritocchi: B resta sulla scena di A, C cambia la scena ed è la più dettagliata ma più lenta. Rilancialo con il tuo prompt prima di decidere.
+
 **NVFP4 su RTX 5070 Ti**: serve PyTorch compilato per **CUDA 13.0 (cu130)**, altrimenti il
 modello gira in fallback ed è fino a 2 volte più lento dell'FP8. Il nodo Taratura scrive nel
 report GPU, compute capability, versione di torch/CUDA e il tipo dei pesi, e avvisa se la build non va bene.
