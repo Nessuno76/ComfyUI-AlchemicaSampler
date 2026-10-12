@@ -179,7 +179,7 @@ def ita_da_crop(crop):
     return math.degrees(math.atan((Lm - 50) / max(bm, 1.0)))
 
 
-# Calibration of the WORDS against what Krea 2 actually PAINTS (fineporn v4 NVFP4, "A woman with <word>" at the start
+# Calibration of the WORDS against what Krea 2 actually PAINTS (a fine-tuned NVFP4 checkpoint, "A woman with <word>" at the start
 # of the prompt, head-and-shoulders portrait, soft daylight, 1.5 MP; ITA measured with ita_da_immagine on the result;
 # 2026-10-01, 24 images, two seeds: repeatability about ±3°). The model has a strong bias to light skin and its
 # scale is not linear in the words ("dark brown" paints +31°, "deep brown" +15°, "deep dark brown" -14°).

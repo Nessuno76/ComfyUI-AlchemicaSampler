@@ -80,7 +80,7 @@ def run_pro(model, positive, negative, latent_dict, seed, cfg, denoise=1.0, mode
     if model2 is not None and not use_two:
         report.append("il modello di rifinitura e' stato IGNORATO: serve la modalita' a due stadi")
     if anteprime > 0 and not use_two:
-        report.append("ANTEPRIME IGNORATE: servono i due stadi (latente vuoto, denoise 1.0)")
+        report.append("PREVIEWS IGNORED: they need the two stages (empty latent, denoise 1.0)")
         anteprime = 0
 
     H, W = latent.shape[-2], latent.shape[-1]
@@ -102,17 +102,17 @@ def run_pro(model, positive, negative, latent_dict, seed, cfg, denoise=1.0, mode
             s2k = sk + int(cfg["stage2_seed_offset"])
             n2 = noise_downscaled(comfy.sample.prepare_noise(full, s2k, None), h1, w1)
             outs.append(_sample(model2 or model, guider2, cfg, x1, n2, s2, s2k, None, stats))
-            report.append(f"anteprima #{k}  seed {sk}")
-        report.insert(0, f"ANTEPRIME: {anteprime} immagini a {w1 * 8}x{h1 * 8}px (stadio 1 identico al finale, "
-                         f"stadio 2 rifatto in piccolo). Per completarne una: anteprime = 0, scelta = numero "
-                         f"dell'anteprima (stesso seed base).")
-        report.append(f"chiamate al modello: {stats['nfe']}  tempo totale: {time.perf_counter() - t0:.1f}s")
+            report.append(f"preview #{k}  seed {sk}")
+        report.insert(0, f"PREVIEWS: {anteprime} images at {w1 * 8}x{h1 * 8}px (stage 1 identical to the final, "
+                         f"stage 2 redone small). To complete one: previews = 0, choice = the preview "
+                         f"number (same base seed).")
+        report.append(f"model calls: {stats['nfe']}  total time: {time.perf_counter() - t0:.1f}s")
         out = latent_dict.copy()
         out.pop("downscale_ratio_spacial", None)
         out.pop("batch_index", None)
         out.pop("noise_mask", None)
         out["samples"] = torch.cat(outs, 0)
-        return out, s2, report, [("stadio 1", s1), ("stadio 2 (in piccolo)", s2)], guider
+        return out, s2, report, [("stage 1", s1), ("stage 2 (small)", s2)], guider
 
     if use_two:
         s1, s2 = schedules.two_stage_schedules(ms, cfg)
@@ -132,32 +132,32 @@ def run_pro(model, positive, negative, latent_dict, seed, cfg, denoise=1.0, mode
         samples = _sample(model2 or model, guider2, cfg, up, noise2, s2, seed2, None, stats)
         t2 = time.perf_counter() - t2
         report += [
-            f"STADIO 1  {w1 * 8}x{h1 * 8}px  {len(s1) - 1} step  {t1:.1f}s  seed {seed}  sigma: "
+            f"STAGE 1  {w1 * 8}x{h1 * 8}px  {len(s1) - 1} steps  {t1:.1f}s  seed {seed}  sigma: "
             + " ".join(f"{v:.3f}" for v in s1.tolist()),
-            f"STADIO 2  {W * 8}x{H * 8}px  {len(s2) - 1} step  {t2:.1f}s  seed {seed2}  sigma: "
+            f"STAGE 2  {W * 8}x{H * 8}px  {len(s2) - 1} steps  {t2:.1f}s  seed {seed2}  sigma: "
             + " ".join(f"{v:.3f}" for v in s2.tolist()),
         ]
         if model2 is not None:
-            report.append("stadio 2 con un ALTRO modello (composizione e rifinitura separate)")
-        plots = [("stadio 1 (bassa ris.)", s1), ("stadio 2 (alta ris.)", s2)]
+            report.append("stage 2 with a DIFFERENT model (composition and refinement separate)")
+        plots = [("stage 1 (low res)", s1), ("stage 2 (high res)", s2)]
         final_sigmas = s2
     else:
         sig = schedules.main_schedule(ms, cfg, denoise)
         if sig.numel() == 0:
-            return latent_dict, sig, report + ["denoise = 0: nessun campionamento"], plots, guider
+            return latent_dict, sig, report + ["denoise = 0: no sampling"], plots, guider
         noise = comfy.sample.prepare_noise(latent, seed, batch_inds)
         noise = contract_noise(noise, cfg["contraction"])
         samples = _sample(model, guider, cfg, latent, noise, sig, seed,
                           latent_dict.get("noise_mask", None), stats)
-        report.append(f"STADIO UNICO  {W * 8}x{H * 8}px  {len(sig) - 1} step  sigma: "
+        report.append(f"SINGLE STAGE  {W * 8}x{H * 8}px  {len(sig) - 1} steps  sigma: "
                       + " ".join(f"{v:.3f}" for v in sig.tolist()))
-        plots = [("stadio unico", sig)]
+        plots = [("single stage", sig)]
         final_sigmas = sig
 
     doppie = getattr(guider, "chiamate_doppie", 0) + (getattr(guider2, "chiamate_doppie", 0) if guider2 is not guider else 0)
-    report.append(f"chiamate al modello: {stats['nfe'] or 'n/d (solver comfy)'}"
-                  + (f" (+{doppie} per la sfumatura)" if doppie else "")
-                  + f"  tempo totale: {time.perf_counter() - t0:.1f}s")
+    report.append(f"model calls: {stats['nfe'] or 'n/a (comfy solver)'}"
+                  + (f" (+{doppie} for the blur)" if doppie else "")
+                  + f"  total time: {time.perf_counter() - t0:.1f}s")
     out = latent_dict.copy()
     out.pop("downscale_ratio_spacial", None)
     out["samples"] = samples

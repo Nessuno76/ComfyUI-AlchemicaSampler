@@ -58,6 +58,47 @@ try:  # photo: improve / rebuild / upscale an existing photo, or change only a p
 except Exception as e:  # pragma: no cover
     print(f"[AlchemicaSampler] Photo nodes NOT loaded: {e}")
 
+try:  # prompt: enhancer (or verbatim text) + encoding + attention guidance, in one node
+    from .nodes_prompt import NODE_CLASS_MAPPINGS as _P, NODE_DISPLAY_NAME_MAPPINGS as _P_NAMES
+    NODE_CLASS_MAPPINGS.update(_P)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_P_NAMES)
+except Exception as e:  # pragma: no cover
+    print(f"[AlchemicaSampler] Prompt node NOT loaded: {e}")
+
+try:  # prompt workstation: idea / prompt / list / string / examples, Krea 2 encoder or Ollama, NAG, latent, pass
+    from .nodes_prompt_studio import NODE_CLASS_MAPPINGS as _PS, NODE_DISPLAY_NAME_MAPPINGS as _PS_NAMES
+    NODE_CLASS_MAPPINGS.update(_PS)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_PS_NAMES)
+except Exception as e:  # pragma: no cover
+    print(f"[AlchemicaSampler] Prompt workstation node NOT loaded: {e}")
+
+try:  # KSampler Flex: the all-in-one KSampler with any sampler and scheduler (calibrated profile or ComfyUI's)
+    from .nodes_flex import NODE_CLASS_MAPPINGS as _FX, NODE_DISPLAY_NAME_MAPPINGS as _FX_NAMES
+    NODE_CLASS_MAPPINGS.update(_FX)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_FX_NAMES)
+except Exception as e:  # pragma: no cover
+    print(f"[AlchemicaSampler] KSampler Flex node NOT loaded: {e}")
+
+try:  # DeGrid: removes the 2-pixel grid of Krea 2's VAE from any image
+    from .nodes_degrid import NODE_CLASS_MAPPINGS as _DG, NODE_DISPLAY_NAME_MAPPINGS as _DG_NAMES
+    NODE_CLASS_MAPPINGS.update(_DG)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_DG_NAMES)
+except Exception as e:  # pragma: no cover
+    print(f"[AlchemicaSampler] DeGrid node NOT loaded: {e}")
+
+try:  # save image with a destination-subfolder dropdown
+    from .nodes_salva import NODE_CLASS_MAPPINGS as _S, NODE_DISPLAY_NAME_MAPPINGS as _S_NAMES
+    NODE_CLASS_MAPPINGS.update(_S)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_S_NAMES)
+except Exception as e:  # pragma: no cover
+    print(f"[AlchemicaSampler] Save Image node NOT loaded: {e}")
+
+try:  # 1.1 restyle: English, community-standard twins of every node; the 1.0 nodes become hidden (legacy)
+    from .nodes_v2 import costruisci as _costruisci_v2
+    _costruisci_v2(NODE_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS)
+except Exception as e:  # pragma: no cover
+    print(f"[AlchemicaSampler] 1.1 nodes NOT created: {e}")
+
 WEB_DIRECTORY = "./web"   # interface extensions (pass-through connectors that appear one at a time)
 
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]

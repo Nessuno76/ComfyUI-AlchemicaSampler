@@ -33,17 +33,19 @@ def resolve_auto(cfg):
         if float(cfg.get(key, 0)) < 0:
             v = tips.get(pkey)
             cfg[key] = float(v) if v is not None else fallback
-            notes.append(f"{key}={cfg[key]:.3f}" + (" (profilo)" if v is not None else " (ripiego: nessun profilo)"))
+            notes.append(f"{key}={cfg[key]:.3f}" + (" (profile)" if v is not None else " (fallback: no profile)"))
     if cfg["scheduler"] == "alchemica_tarato" and prof is None:
-        notes.append("scheduler tarato SENZA profilo -> alchemica_duale")
+        notes.append("calibrated scheduler WITHOUT a profile -> alchemica_duale")
     return cfg, notes
 
 
-def make_sampler(cfg, seed, stats=None):
+def make_sampler(cfg, seed, stats=None, ref=None, tau=0.65):
     solver = cfg["solver"]
     if solver.startswith("comfy:"):
         return comfy.samplers.sampler_object(solver[6:])
     return comfy.samplers.KSAMPLER(alchemica_loop, extra_options={
+        "ancora_ref": ref, "ancora_tau": float(tau), "ancora_forza": float(cfg.get("ancora_forza", 0.0)),
+        "ancora_d": float(cfg.get("ancora_d", 0.4)),
         "solver": solver,
         "detail_amount": float(cfg["detail_amount"]), "detail_start": float(cfg["detail_start"]),
         "detail_end": float(cfg["detail_end"]), "detail_peak": float(cfg["detail_peak"]),
@@ -79,8 +81,8 @@ def _preview_cb(model, steps):
         return None
 
 
-def _sample(model, guider, cfg, latent, noise, sigmas, seed, mask, stats):
-    sampler = make_sampler(cfg, seed, stats)
+def _sample(model, guider, cfg, latent, noise, sigmas, seed, mask, stats, ref=None):
+    sampler = make_sampler(cfg, seed, stats, ref, float(sigmas[0]) if len(sigmas) else 0.65)
     out = guider.sample(noise, latent, sampler, sigmas, denoise_mask=mask,
                         callback=_preview_cb(model, len(sigmas) - 1),
                         disable_pbar=not comfy.utils.PROGRESS_BAR_ENABLED, seed=seed)
@@ -127,34 +129,59 @@ def run(model, positive, negative, latent_dict, seed, cfg, denoise=1.0, model2=N
         seed2 = seed + int(cfg["stage2_seed_offset"])
         noise2 = comfy.sample.prepare_noise(up, seed2, batch_inds)
         t2 = time.perf_counter()
-        samples = _sample(model2 or model, guider2, cfg, up, noise2, s2, seed2, None, stats)
+        ancora = float(cfg.get("ancora_forza", 0.0)) > 0.0
+        ref = None
+        if ancora:
+            # the sampler works on PROCESSED latents (latent_format.process_in: Wan21 = per-channel mean/std): the
+            # reference must be in the same space as the x0 prediction, like the guider does with latent_image
+            try:
+                ref = (model2 or model).model.process_latent_in(up)
+            except Exception:
+                ref = up
+        samples = _sample(model2 or model, guider2, cfg, up, noise2, s2, seed2, None, stats, ref=ref)
         t2 = time.perf_counter() - t2
+        k_res = schedules.handoff_k(cfg)
+        if k_res > 1.0:
+            report.append(f"hand-off corrected for resolution (k={k_res:.2f}): stage 1 down to "
+                          f"{schedules.sigma_low_res(cfg['handoff_sigma'], k_res):.3f} at half resolution = "
+                          f"{float(cfg['handoff_sigma']):.3f} at full resolution")
         report += [
-            f"STADIO 1  {w1 * 8}x{h1 * 8}px  {len(s1) - 1} step  {t1:.1f}s  sigma: "
+            f"STAGE 1  {w1 * 8}x{h1 * 8}px  {len(s1) - 1} steps  {t1:.1f}s  sigma: "
             + " ".join(f"{v:.3f}" for v in s1.tolist()),
-            f"STADIO 2  {W * 8}x{H * 8}px  {len(s2) - 1} step  {t2:.1f}s  sigma: "
+            f"STAGE 2  {W * 8}x{H * 8}px  {len(s2) - 1} steps  {t2:.1f}s  sigma: "
             + " ".join(f"{v:.3f}" for v in s2.tolist()),
         ]
         if model2 is not None:
-            report.append("stadio 2 con un ALTRO modello (composizione e rifinitura separate)")
-        plots = [("stadio 1 (bassa ris.)", s1), ("stadio 2 (alta ris.)", s2)]
+            report.append("stage 2 with a DIFFERENT model (composition and refinement separate)")
+        if ancora:
+            report.append(f"low-frequency anchor (HiFlow): strength {float(cfg['ancora_forza']):g}, cutoff "
+                          f"{float(cfg.get('ancora_d', 0.4)):g}, weight sigma/{float(s2[0]):.3f}"
+                          + ("  -> IGNORED: needs an alchemica_* sampler" if str(cfg["solver"]).startswith("comfy:") else ""))
+        plots = [("stage 1 (low res)", s1), ("stage 2 (high res)", s2)]
         final_sigmas = s2
     else:
         sig = schedules.main_schedule(ms, cfg, denoise)
         if sig.numel() == 0:
-            return latent_dict, sig, report + ["denoise = 0: nessun campionamento"], plots
+            return latent_dict, sig, report + ["denoise = 0: no sampling"], plots
         noise = comfy.sample.prepare_noise(latent, seed, batch_inds)
         noise = contract_noise(noise, cfg["contraction"])
         samples = _sample(model, guider, cfg, latent, noise, sig, seed,
                           latent_dict.get("noise_mask", None), stats)
         H, W = latent.shape[-2], latent.shape[-1]
-        report.append(f"STADIO UNICO  {W * 8}x{H * 8}px  {len(sig) - 1} step  sigma: "
+        report.append(f"SINGLE STAGE  {W * 8}x{H * 8}px  {len(sig) - 1} steps  sigma: "
                       + " ".join(f"{v:.3f}" for v in sig.tolist()))
-        plots = [("stadio unico", sig)]
+        plots = [("single stage", sig)]
         final_sigmas = sig
 
-    report.append(f"chiamate al modello: {stats['nfe'] or 'n/d (solver comfy)'}  "
-                  f"tempo totale: {time.perf_counter() - t0:.1f}s")
+    if cfg.get("scheduler") == "alchemica_tarato" or cfg.get("stage2_scheduler") == "alchemica_tarato":
+        try:
+            nota = schedules.descrivi_tarato(cfg)
+            if nota:
+                report.append(nota)
+        except Exception:
+            pass
+    report.append(f"model calls: {stats['nfe'] or 'n/a (comfy solver)'}  "
+                  f"total time: {time.perf_counter() - t0:.1f}s")
     out = latent_dict.copy()
     out.pop("downscale_ratio_spacial", None)
     out["samples"] = samples

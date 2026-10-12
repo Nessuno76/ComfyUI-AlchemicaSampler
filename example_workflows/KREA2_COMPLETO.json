@@ -6,7 +6,7 @@
  "nodes": [
   {
    "id": 1,
-   "type": "AlchemicaCaricaKrea2",
+   "type": "AlchemicaLoadKrea2",
    "pos": [
     20,
     40
@@ -46,7 +46,7 @@
     }
    ],
    "properties": {
-    "Node name for S&R": "AlchemicaCaricaKrea2"
+    "Node name for S&R": "AlchemicaLoadKrea2"
    },
    "widgets_values": [
     "krea2_turbo_nvfp4.safetensors",
@@ -60,7 +60,7 @@
   },
   {
    "id": 2,
-   "type": "AlchemicaLoraStack",
+   "type": "AlchemicaLoraLoader",
    "pos": [
     20,
     240
@@ -101,29 +101,23 @@
       4
      ],
      "slot_index": 1
-    },
-    {
-     "name": "riepilogo",
-     "type": "STRING",
-     "links": null,
-     "slot_index": 2
     }
    ],
    "properties": {
-    "Node name for S&R": "AlchemicaLoraStack"
+    "Node name for S&R": "AlchemicaLoraLoader"
    },
    "widgets_values": [
-    "(nessuna)",
+    "(none)",
     1.0,
-    "(nessuna)",
+    "(none)",
     1.0,
-    "(nessuna)",
+    "(none)",
     1.0,
-    "(nessuna)",
+    "(none)",
     1.0,
-    "(nessuna)",
+    "(none)",
     1.0,
-    "(nessuna)",
+    "(none)",
     1.0,
     1.0
    ],
@@ -133,7 +127,7 @@
   },
   {
    "id": 3,
-   "type": "AlchemicaEnhancer",
+   "type": "AlchemicaPromptEnhancer",
    "pos": [
     470,
     40
@@ -152,14 +146,14 @@
      "link": 3
     },
     {
-     "name": "immagine",
+     "name": "image",
      "type": "IMAGE",
      "link": null
     }
    ],
    "outputs": [
     {
-     "name": "scena",
+     "name": "scene",
      "type": "STRING",
      "links": [
       5
@@ -167,7 +161,7 @@
      "slot_index": 0
     },
     {
-     "name": "dettaglio",
+     "name": "detail",
      "type": "STRING",
      "links": [
       6
@@ -175,7 +169,7 @@
      "slot_index": 1
     },
     {
-     "name": "negativo",
+     "name": "negative",
      "type": "STRING",
      "links": [
       7
@@ -192,11 +186,11 @@
     }
    ],
    "properties": {
-    "Node name for S&R": "AlchemicaEnhancer"
+    "Node name for S&R": "AlchemicaPromptEnhancer"
    },
    "widgets_values": [
     "a chemistry teacher in a school lab showing a test tube to her students, warm afternoon light",
-    "foto realistica",
+    "realistic photo",
     80,
     0.0,
     0,
@@ -208,7 +202,7 @@
   },
   {
    "id": 4,
-   "type": "AlchemicaTesto",
+   "type": "AlchemicaTextEncode",
    "pos": [
     470,
     410
@@ -227,33 +221,33 @@
      "link": 4
     },
     {
-     "name": "scena",
+     "name": "scene",
      "type": "STRING",
      "link": 5,
      "widget": {
-      "name": "scena"
+      "name": "scene"
      }
     },
     {
-     "name": "dettaglio",
+     "name": "detail",
      "type": "STRING",
      "link": 6,
      "widget": {
-      "name": "dettaglio"
+      "name": "detail"
      }
     },
     {
-     "name": "negativo",
+     "name": "negative_text",
      "type": "STRING",
      "link": 7,
      "widget": {
-      "name": "negativo"
+      "name": "negative_text"
      }
     }
    ],
    "outputs": [
     {
-     "name": "positive_scena",
+     "name": "positive_scene",
      "type": "CONDITIONING",
      "links": [
       11
@@ -261,7 +255,7 @@
      "slot_index": 0
     },
     {
-     "name": "positive_dettaglio",
+     "name": "positive_detail",
      "type": "CONDITIONING",
      "links": [
       12
@@ -277,20 +271,20 @@
      "slot_index": 2
     },
     {
-     "name": "testo_dettaglio",
+     "name": "detail_text",
      "type": "STRING",
      "links": null,
      "slot_index": 3
     }
    ],
    "properties": {
-    "Node name for S&R": "AlchemicaTesto"
+    "Node name for S&R": "AlchemicaTextEncode"
    },
    "widgets_values": [
     "",
     "",
     "",
-    "aggiungi alla scena"
+    "scene + detail"
    ],
    "title": "⚗ 3 · Text",
    "color": "#232",
@@ -298,7 +292,7 @@
   },
   {
    "id": 5,
-   "type": "AlchemicaAttenzione",
+   "type": "AlchemicaAttentionGuidance",
    "pos": [
     470,
     780
@@ -317,7 +311,7 @@
      "link": 8
     },
     {
-     "name": "negativo",
+     "name": "negative",
      "type": "CONDITIONING",
      "link": 9
     }
@@ -341,16 +335,16 @@
     }
    ],
    "properties": {
-    "Node name for S&R": "AlchemicaAttenzione"
+    "Node name for S&R": "AlchemicaAttentionGuidance"
    },
    "widgets_values": [
     3.0,
     2.5,
     0.25,
-    "tutti",
+    "all",
     -1.0,
     0.0,
-    "spenta",
+    "off",
     0.0,
     "8-19",
     10.0,
@@ -409,7 +403,7 @@
   },
   {
    "id": 7,
-   "type": "AlchemicaKreaPro",
+   "type": "AlchemicaKSamplerPro",
    "pos": [
     940,
     40
@@ -438,7 +432,7 @@
      "link": 13
     },
     {
-     "name": "positive_dettaglio",
+     "name": "positive_detail",
      "type": "CONDITIONING",
      "link": 12
     },
@@ -448,7 +442,7 @@
      "link": null
     },
     {
-     "name": "modello_rifinitura",
+     "name": "refiner_model",
      "type": "MODEL",
      "link": null
     },
@@ -468,7 +462,7 @@
      "slot_index": 0
     },
     {
-     "name": "grafico_sigma",
+     "name": "sigma_plot",
      "type": "IMAGE",
      "links": null,
      "slot_index": 1
@@ -482,7 +476,7 @@
      "slot_index": 2
     },
     {
-     "name": "seed_usato",
+     "name": "used_seed",
      "type": "INT",
      "links": [
       18
@@ -491,13 +485,13 @@
     }
    ],
    "properties": {
-    "Node name for S&R": "AlchemicaKreaPro"
+    "Node name for S&R": "AlchemicaKSamplerPro"
    },
    "widgets_values": [
     12345,
     "fixed",
     "(auto)",
-    "equilibrato",
+    "balanced",
     true,
     -1.0,
     0.12,

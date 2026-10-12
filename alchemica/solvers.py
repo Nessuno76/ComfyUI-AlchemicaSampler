@@ -130,13 +130,45 @@ def ancestral_rf_step(x, denoised, s, s_next, eta, gen):
     return (a_next / a_down) * x + eps * renoise
 
 
+# ---------------------------------------------------------------- low-frequency anchor (HiFlow)
+
+_MASCHERE = {}
+
+
+def maschera_bassa(h, w, d=0.4, n=4, device="cpu"):
+    """Butterworth low-pass for rfft2 of an h x w field: 1 / (1 + (r/d)^(2n)), r = normalised radius
+    (sqrt((2fy)^2 + (2fx)^2), 1 = Nyquist on one axis), as in FreeInit / HiFlow."""
+    key = (h, w, round(float(d), 4), n, str(device))
+    if key not in _MASCHERE:
+        fy = torch.fft.fftfreq(h, device=device).view(-1, 1)
+        fx = torch.fft.rfftfreq(w, device=device).view(1, -1)
+        r = torch.sqrt((2 * fy) ** 2 + (2 * fx) ** 2)
+        _MASCHERE[key] = 1.0 / (1.0 + (r / max(float(d), 1e-3)) ** (2 * n))
+    return _MASCHERE[key]
+
+
+def ancora_basse(denoised, ref, alpha, d=0.4):
+    """Replaces a share alpha of the LOW frequencies of the x0 prediction with those of ref (the upscaled stage-1
+    image): composition and colour stay the ones decided at low resolution, the high frequencies are the model's.
+    HiFlow 'direction alignment' (arXiv 2504.06232, NeurIPS 2025)."""
+    if ref is None or alpha <= 0.0:
+        return denoised
+    x = denoised.float()
+    r = ref.to(device=x.device, dtype=torch.float32)
+    if r.shape != x.shape:
+        return denoised
+    m = maschera_bassa(x.shape[-2], x.shape[-1], d, device=x.device)
+    diff = torch.fft.irfft2(torch.fft.rfft2(r - x, dim=(-2, -1)) * m, s=x.shape[-2:], dim=(-2, -1))
+    return (x + float(alpha) * diff).to(denoised.dtype)
+
+
 # ---------------------------------------------------------------- loop
 
 @torch.no_grad()
 def alchemica_loop(model, x, sigmas, extra_args=None, callback=None, disable=None,
                    solver="euler", detail_amount=0.0, detail_start=0.15, detail_end=0.95,
                    detail_peak=0.6, detail_sigma_hi=0.0, detail_sigma_lo=0.0, eta=0.0, sigma_gate=0.10, gate_hi=0.35, noise_seed=0,
-                   stats=None):
+                   stats=None, ancora_ref=None, ancora_tau=0.65, ancora_forza=0.0, ancora_d=0.4):
     extra_args = {} if extra_args is None else extra_args
     step_fn = SOLVERS.get(solver, SOLVERS["euler"])
     ctx = Ctx(model, extra_args, x.new_ones([x.shape[0]]), callback)
@@ -171,6 +203,8 @@ def alchemica_loop(model, x, sigmas, extra_args=None, callback=None, disable=Non
         s_model = max(1e-4, s - a * (s - s_next))
 
         denoised = ctx.denoise(x, s_model)
+        if ancora_ref is not None and ancora_forza > 0.0:     # weight t/tau, fading to 0 (HiFlow)
+            denoised = ancora_basse(denoised, ancora_ref, ancora_forza * min(1.0, s / max(ancora_tau, 1e-3)), ancora_d)
         if callback is not None:
             callback({"x": x, "i": i, "sigma": sigmas[i], "sigma_hat": sigmas[i], "denoised": denoised})
 

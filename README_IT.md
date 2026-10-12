@@ -15,6 +15,7 @@ FaceDetailer né upscale a piastrelle.
 2. Riavvia ComfyUI (il codice Python si ricarica solo riavviando il server)
 3. Nodi in **Add Node → AlchemicaMente → sampling**
 4. Ordine d'uso: `KREA2_TARATURA.json` → `KREA2_COMPLETO.json` (o `KREA2_SEMPLICE.json`)
+5. **Per iniziare**: `KreaAlchemicaMente_K2AM.json`, la pipeline lineare essenziale Carica → LoRA → Prompt → KSampler Flex (calibrazione v2, due stadi, DeGrid) → Salva, in quattro gruppi colorati con una guida rapida
 
 **NVFP4 su RTX 5070 Ti**: serve PyTorch compilato per **CUDA 13.0 (cu130)**, altrimenti il
 modello gira in fallback ed è fino a 2 volte più lento dell'FP8. Il nodo Taratura scrive nel

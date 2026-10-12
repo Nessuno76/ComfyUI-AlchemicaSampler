@@ -203,7 +203,7 @@
   },
   {
    "id": 6,
-   "type": "AlchemicaSampler",
+   "type": "AlchemicaSamplerAdvanced",
    "pos": [
     1000,
     40
@@ -258,7 +258,7 @@
      "slot_index": 1
     },
     {
-     "name": "grafico_sigma",
+     "name": "sigma_plot",
      "type": "IMAGE",
      "links": null,
      "slot_index": 2
@@ -273,12 +273,12 @@
     }
    ],
    "properties": {
-    "Node name for S&R": "AlchemicaSampler"
+    "Node name for S&R": "AlchemicaSamplerAdvanced"
    },
    "widgets_values": [
     12345,
     "fixed",
-    "rif_euler_simple",
+    "reference_euler_simple",
     "krea2_nvfp4_3MP",
     1.0
    ],
@@ -399,7 +399,7 @@
   },
   {
    "id": 10,
-   "type": "AlchemicaSampler",
+   "type": "AlchemicaSamplerAdvanced",
    "pos": [
     1420,
     40
@@ -454,7 +454,7 @@
      "slot_index": 1
     },
     {
-     "name": "grafico_sigma",
+     "name": "sigma_plot",
      "type": "IMAGE",
      "links": null,
      "slot_index": 2
@@ -469,12 +469,12 @@
     }
    ],
    "properties": {
-    "Node name for S&R": "AlchemicaSampler"
+    "Node name for S&R": "AlchemicaSamplerAdvanced"
    },
    "widgets_values": [
     12345,
     "fixed",
-    "alchemica_duale",
+    "alchemica_dual",
     "krea2_nvfp4_3MP",
     1.0
    ],
@@ -595,7 +595,7 @@
   },
   {
    "id": 14,
-   "type": "AlchemicaSampler",
+   "type": "AlchemicaSamplerAdvanced",
    "pos": [
     1840,
     40
@@ -650,7 +650,7 @@
      "slot_index": 1
     },
     {
-     "name": "grafico_sigma",
+     "name": "sigma_plot",
      "type": "IMAGE",
      "links": null,
      "slot_index": 2
@@ -665,7 +665,7 @@
     }
    ],
    "properties": {
-    "Node name for S&R": "AlchemicaSampler"
+    "Node name for S&R": "AlchemicaSamplerAdvanced"
    },
    "widgets_values": [
     12345,
@@ -791,7 +791,7 @@
   },
   {
    "id": 18,
-   "type": "AlchemicaSampler",
+   "type": "AlchemicaSamplerAdvanced",
    "pos": [
     2260,
     40
@@ -846,7 +846,7 @@
      "slot_index": 1
     },
     {
-     "name": "grafico_sigma",
+     "name": "sigma_plot",
      "type": "IMAGE",
      "links": null,
      "slot_index": 2
@@ -861,12 +861,12 @@
     }
    ],
    "properties": {
-    "Node name for S&R": "AlchemicaSampler"
+    "Node name for S&R": "AlchemicaSamplerAdvanced"
    },
    "widgets_values": [
     12345,
     "fixed",
-    "foto_tarata_2K",
+    "photo_calibrated_2K",
     "krea2_nvfp4_3MP",
     1.0
    ],

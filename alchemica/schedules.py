@@ -102,6 +102,74 @@ def alchemica_duale(ms, steps, cfg):
     return schedule_from_density(s, duale_density(s, cfg, _model_mu(ms, cfg)), steps, _sigma_max(ms))
 
 
+# ---- calibration v2 (2026-10-10): solver-order law, log-SNR smoothing, own curves for the half-resolution stage
+_PRIMO_ORDINE = ("euler", "ddim", "lcm", "ddpm", "dpm_fast", "dpm_adaptive")
+
+
+def ordine_solver(cfg):
+    """Order of the solver the steps are placed for: 1 = Euler-like, 2 = second order or more.
+    tarato_ordine 1/2 forces it, 0 = auto from the solver name."""
+    o = int(cfg.get("tarato_ordine", 0) or 0)
+    if o in (1, 2):
+        return o
+    nome = str(cfg.get("solver", "euler"))
+    nome = nome[6:] if nome.startswith("comfy:") else nome
+    if nome in ("euler_2m", "heun"):
+        return 2
+    return 1 if any(nome == p or nome.startswith(p + "_") for p in _PRIMO_ORDINE) else 2
+
+
+def _curva_tarata(prof, cfg):
+    """-> (key of the profile curve, exponent, description)."""
+    esp = float(cfg.get("tarato_esponente", 0.5))
+    if not cfg.get("tarato_v2"):
+        return "costo", esp, "v1"
+    ordine = ordine_solver(cfg)
+    base = "costo"
+    if ordine == 2 and prof.get("costo3"):
+        base, esp = "costo3", esp * 2.0 / 3.0      # 0.5 (Euler: sqrt) -> 1/3 (2nd order: cube root)
+    key = base
+    if cfg.get("_stadio") == 1 and cfg.get("tarato_bassa", True) and prof.get(base + "_bassa"):
+        key = base + "_bassa"
+    nota = (f"v2 order {ordine}{'' if base == 'costo3' or ordine == 1 else ' (profile has no 2nd-order curve: recalibrate)'}"
+            f", exponent {esp:.3f}, curve {key}")
+    return key, esp, nota
+
+
+def _liscia_lambda(s, logd, sigma_l):
+    """Gaussian smoothing of log-density in log-SNR time lambda = log((1-s)/s): the same smoothing at every scale
+    of the trajectory, so measuring noise does not make clusters of steps."""
+    if sigma_l <= 0:
+        return logd
+    lam = torch.log((1.0 - s).clamp_min(1e-6) / s.clamp_min(1e-6))
+    o = torch.argsort(lam)
+    lam_o, y_o = lam[o], logd[o]
+    n = 512
+    grid = torch.linspace(float(lam_o[0]), float(lam_o[-1]), n, dtype=torch.float64)
+    idx = torch.searchsorted(lam_o, grid).clamp(1, lam_o.numel() - 1)
+    w = ((grid - lam_o[idx - 1]) / (lam_o[idx] - lam_o[idx - 1]).clamp_min(1e-12)).clamp(0, 1)
+    yg = y_o[idx - 1] + w * (y_o[idx] - y_o[idx - 1])
+    passo = float(grid[1] - grid[0])
+    r = max(1, int(round(3 * sigma_l / passo)))
+    t = torch.arange(-r, r + 1, dtype=torch.float64) * passo
+    k = torch.exp(-0.5 * (t / sigma_l) ** 2)
+    k = k / k.sum()
+    yp = torch.cat([yg[:1].repeat(r), yg, yg[-1:].repeat(r)])
+    ys = torch.nn.functional.conv1d(yp[None, None], k[None, None])[0, 0]
+    j = torch.searchsorted(grid, lam).clamp(1, n - 1)
+    w = ((lam - grid[j - 1]) / passo).clamp(0, 1)
+    return ys[j - 1] + w * (ys[j] - ys[j - 1])
+
+
+def descrivi_tarato(cfg):
+    prof = load_profile(cfg.get("profilo", ""))
+    if prof is None:
+        return ""
+    a = _curva_tarata(prof, cfg)[2]
+    b = _curva_tarata(prof, dict(cfg, _stadio=1))[2] if cfg.get("two_stage") else None
+    return "calibration " + a + (f" | stage 1: {b.split('curve ')[-1]}" if b and b != a else "")
+
+
 @register_scheduler("alchemica_tarato")
 def alchemica_tarato(ms, steps, cfg):
     prof = load_profile(cfg.get("profilo", ""))
@@ -109,10 +177,12 @@ def alchemica_tarato(ms, steps, cfg):
         print("[AlchemicaSampler] profilo di taratura mancante: uso alchemica_duale")
         return alchemica_duale(ms, steps, cfg)
     s = torch.tensor(prof["sigma"], dtype=torch.float64)
-    c = torch.tensor(prof["costo"], dtype=torch.float64).clamp_min(1e-9)
-    esp = float(cfg.get("tarato_esponente", 0.5))
+    key, esp, _ = _curva_tarata(prof, cfg)
+    c = torch.tensor(prof[key], dtype=torch.float64).clamp_min(1e-9)
     mix = float(cfg.get("tarato_miscela", 0.15))
     d = c ** esp
+    if cfg.get("tarato_v2"):
+        d = torch.exp(_liscia_lambda(s, torch.log(d), float(cfg.get("tarato_liscia", 0.35))))
     d = d / d.mean()
     d = (1.0 - mix) * d + mix               # pavimento: nessuna zona resta senza step
     return schedule_from_density(s, d, steps, _sigma_max(ms))
@@ -149,15 +219,24 @@ def profile_names():
 _CACHE = {}
 
 
-def match_profile(impronta):
-    """Nome del profilo tarato su QUESTO modello, o None."""
+def match_profile(impronta, lora=None):
+    """Nome del profilo tarato su QUESTO modello, o None. Con lora (firma dello stack di LoRA, '' = nessuna):
+    prima un profilo tarato con le STESSE LoRA, altrimenti uno qualsiasi dello stesso checkpoint
+    (i profili tarati prima del 2026-10-10 non hanno la firma e valgono come 'senza LoRA')."""
     if not impronta or impronta == "sconosciuta":
         return None
-    for n in profile_names():
-        p = load_profile(n)
-        if p and p.get("impronta") == impronta:
-            return n
-    return None
+    trovati = [n for n in profile_names() if (load_profile(n) or {}).get("impronta") == impronta]
+    if not trovati:
+        return None
+    # profiles with the calibration-v2 curves first (more samples first): a new calibration wins over the old ones
+    # of the same checkpoint. Among old profiles the order stays alphabetical, as in 1.0.
+    v2 = lambda n: -int((load_profile(n) or {}).get("campioni_v2", 0) or 0)
+    trovati.sort(key=v2)
+    if lora is not None:
+        for n in trovati:
+            if (load_profile(n) or {}).get("lora", "") == lora:
+                return n
+    return trovati[0]
 
 
 def load_profile(name):
@@ -187,12 +266,40 @@ def scheduler_names():
     return names
 
 
+def _comfy_ha(nome):
+    """True if ComfyUI can compute this scheduler (packs may register it only in SCHEDULER_HANDLERS)."""
+    import comfy.samplers
+    return (nome in getattr(comfy.samplers, "SCHEDULER_HANDLERS", {}) or nome in comfy.samplers.SCHEDULER_NAMES
+            or nome in getattr(comfy.samplers.KSampler, "SCHEDULERS", []))
+
+
+def _ms_con_shift(ms, shift):
+    """Copy of model_sampling with another flow shift (only the schedule is computed with it; the model
+    keeps its own sigma -> timestep mapping, which in flow models does not depend on the shift)."""
+    try:
+        import copy
+        m2 = copy.deepcopy(ms)
+        kw = {"shift": float(shift)}
+        if hasattr(ms, "multiplier"):
+            kw["multiplier"] = ms.multiplier
+        if getattr(ms, "sigmas", None) is not None:
+            kw["timesteps"] = int(ms.sigmas.numel())
+        m2.set_parameters(**kw)
+        return m2
+    except Exception as ex:
+        print(f"[AlchemicaSampler] shift not applied to the ComfyUI scheduler ({ex}): model's own shift")
+        return ms
+
+
 def base_schedule(ms, name, steps, cfg):
     steps = max(1, int(steps))
     if name.startswith("comfy:"):
         import comfy.samplers
-        if name[6:] not in comfy.samplers.SCHEDULER_NAMES:
+        if not _comfy_ha(name[6:]):
             raise ValueError(f"AlchemicaSampler: lo scheduler '{name[6:]}' non e' installato in ComfyUI")
+        so = float(cfg.get("shift_override", 0.0) or 0.0)
+        if cfg.get("shift_all") and so > 0:          # only the Flex sampler asks for it: old nodes unchanged
+            ms = _ms_con_shift(ms, so)
         return _to_tensor(comfy.samplers.calculate_sigmas(ms, name[6:], steps))
     if name not in SCHEDULERS:
         raise ValueError(f"AlchemicaSampler: scheduler sconosciuto '{name}'")
@@ -271,12 +378,34 @@ def main_schedule(ms, cfg, denoise=1.0):
     return with_restart(ms, name, cfg, s)
 
 
+def handoff_k(cfg):
+    """Resolution factor between the two stages (side ratio). handoff_k: 1 = no correction (1.0 behaviour),
+    0 = auto = final side / first-stage side (SD3 rule k = sqrt(area ratio)), > 1 = explicit."""
+    k = float(cfg.get("handoff_k", 1.0))
+    if k <= 0.0:
+        k = 1.0 / max(1e-3, float(cfg.get("stage1_scale", 0.5)))
+    return max(1.0, k)
+
+
+def sigma_low_res(s, k):
+    """Sigma at the low resolution that holds as much image as sigma s at a resolution k times larger per side.
+    Inverse of the SD3 resolution shift s = k*t / (1 + (k-1)*t) (Esser et al. 2024, sec. 5.3.2)."""
+    s = min(max(float(s), 0.0), 1.0)
+    return s / (k - (k - 1.0) * s)
+
+
 def two_stage_schedules(ms, cfg):
-    """Stadio 1: k1 step fino alla sigma di passaggio h, poi predizione di x0.
-    Stadio 2: k2 step da h a 0 a piena risoluzione (+ eventuale restart)."""
+    """Stadio 1: k1 step fino alla sigma di passaggio, poi predizione di x0.
+    Stadio 2: k2 step da h a 0 a piena risoluzione (+ eventuale restart).
+    h (profilo o 'redraw') e' la sigma a PIENA risoluzione, dove la Taratura misura la composizione. Con la
+    correzione di risoluzione (handoff_k != 1) lo stadio 1 si ferma alla sigma EQUIVALENTE a mezza risoluzione
+    (piu' bassa): la stima passata allo stadio 2 contiene allora tanta immagine quanta ne ha una piena risoluzione
+    a sigma h, e il rumore aggiunto a h le corrisponde. Senza correzione lo stadio 1 si ferma prima del dovuto."""
     name = cfg["scheduler"]
     h = float(cfg["handoff_sigma"])
-    s1 = torch.cat([head(ms, name, cfg, h, int(cfg["stage1_steps"])), torch.zeros(1)])
+    h1 = sigma_low_res(h, handoff_k(cfg))
+    cfg1 = dict(cfg, _stadio=1)          # calibration v2: stage 1 may use the half-resolution curves
+    s1 = torch.cat([head(ms, name, cfg1, h1, int(cfg["stage1_steps"])), torch.zeros(1)])
     name2 = cfg.get("stage2_scheduler", "same")
     name2 = name if name2 in ("same", "", None) else name2
     s2 = with_restart(ms, name2, cfg, tail(ms, name2, cfg, h, int(cfg["stage2_steps"])))

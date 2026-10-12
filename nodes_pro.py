@@ -20,7 +20,7 @@ import copy
 import numpy as np
 import torch
 
-from .alchemica import pipeline_pro, profili_ris
+from .alchemica import anteprima, pipeline_pro, profili_ris
 from .alchemica.plot import plot_sigmas
 from .alchemica.presets import PRESETS
 from .nodes import CAT, MODI, OPTS, _f, _i, _pick_profile, _profiles
@@ -60,11 +60,13 @@ class AlchemicaKreaPro:
                 "negative": ("CONDITIONING",),
                 "modello_rifinitura": ("MODEL", {"tooltip": "Stage 2 with a different model"}),
                 "opts": (OPTS,),
+                **anteprima.ingressi(),
             },
         }
 
-    RETURN_TYPES = ("LATENT", "IMAGE", "STRING", "INT")
-    RETURN_NAMES = ("latent", "grafico_sigma", "report", "seed_usato")
+    RETURN_TYPES = ("LATENT", "IMAGE", "STRING", "INT", "IMAGE")
+    RETURN_NAMES = ("latent", "grafico_sigma", "report", "seed_usato", "immagine")
+    OUTPUT_NODE = True   # like the Efficiency KSampler: with a VAE it shows the image even with nothing after it
     FUNCTION = "sample"
     CATEGORY = CAT
     DESCRIPTION = ("AlchemicaKrea with two-phase prompts (scene/detail), composition previews, refinement variants and a profile chosen by model + resolution.")
@@ -75,7 +77,8 @@ class AlchemicaKreaPro:
 
     def sample(self, model, positive, latent_image, seed, profilo, modo, due_stadi, ridisegno, dettaglio,
                varieta, denoise, cambio_fase, sfumatura, anteprime, scelta, variante_rifinitura,
-               positive_dettaglio=None, negative=None, modello_rifinitura=None, opts=None, **ignorati):
+               positive_dettaglio=None, negative=None, modello_rifinitura=None, opts=None,
+               vae=None, preview_method=anteprima.METODO_DEFAULT, degrid=0.0, **ignorati):
         if ignorati:
             print(f"[AlchemicaKreaPro] ingressi non riconosciuti: {list(ignorati)} — riavvia ComfyUI")
         s1, s2, uno, restart, solver = MODI[modo]
@@ -103,10 +106,11 @@ class AlchemicaKreaPro:
             positive_dettaglio = None
         n_prev = int(anteprime)
         seed_eff = int(seed) if n_prev > 0 else int(seed) + int(scelta)
-        out, sig, report, plots, _ = pipeline_pro.run_pro(
-            model, positive, negative, latent_image, seed_eff, cfg, denoise, model2=modello_rifinitura,
-            positive_dett=positive_dettaglio, cambio=float(cambio_fase), sfumatura=float(sfumatura),
-            anteprime=n_prev)
+        with anteprima.metodo(preview_method):
+            out, sig, report, plots, _ = pipeline_pro.run_pro(
+                model, positive, negative, latent_image, seed_eff, cfg, denoise, model2=modello_rifinitura,
+                positive_dett=positive_dettaglio, cambio=float(cambio_fase), sfumatura=float(sfumatura),
+                anteprime=n_prev)
 
         tag = f"ANTEPRIME x{n_prev}" if n_prev > 0 else ("2 stadi" if due_stadi else "stadio unico")
         title = f"AlchemicaKrea Pro | {modo} | {tag}" + (f" | {nota}" if nota else "")
@@ -118,7 +122,7 @@ class AlchemicaKreaPro:
         img = plot_sigmas(plots, title) if plots else torch.zeros(1, 64, 64, 3)
         text = "\n".join([title] + extra + report)
         print("[AlchemicaKreaPro]\n" + text)
-        return (out, img, text, seed_eff)
+        return anteprima.risultato((out, img, text, seed_eff), vae, out, degrid)
 
 
 class AlchemicaPromptFasi:

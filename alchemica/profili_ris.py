@@ -38,32 +38,37 @@ def profile_mps(prof):
 def pick_by_resolution(model, mp_target):
     """-> (nome, nota). nome "" se non c'e' nessun profilo per questo checkpoint."""
     imp = taratura.fingerprint(model)
+    lora = taratura.lora_signature(model)
     if not imp or imp == "sconosciuta":
-        return "", "impronta del modello non leggibile: scegli il profilo a mano"
+        return "", "model fingerprint unreadable: pick the profile by hand"
     cands = []
     for n in schedules.profile_names():
         p = schedules.load_profile(n)
         if not p or p.get("impronta") != imp:
             continue
         mps = profile_mps(p)
+        diversa = 0 if p.get("lora", "") == lora else 1     # same LoRA stack first (2026-10-10)
+        senza_v2 = 0 if int(p.get("campioni_v2", 0) or 0) > 0 else 1   # then profiles with calibration-v2 curves
         if not mps:
-            cands.append((math.inf, n, None))
+            cands.append((diversa, senza_v2, math.inf, n, None))
             continue
         best = min(mps, key=lambda m: abs(math.log(m / mp_target)))
-        cands.append((abs(math.log(best / mp_target)), n, best))
+        cands.append((diversa, senza_v2, abs(math.log(best / mp_target)), n, best))
     if not cands:
-        print(f"[AlchemicaPro] nessun profilo tarato per questo modello (impronta {imp})")
-        return "", "NESSUN profilo per questo modello: valori di ripiego (lancia la Taratura)"
-    cands.sort(key=lambda c: c[0])
-    d, n, m = cands[0]
-    nota = f"profilo '{n}'"
+        print(f"[AlchemicaPro] no calibrated profile for this model (fingerprint {imp})")
+        return "", "NO profile for this model: fallback values (run the Calibration)"
+    cands.sort(key=lambda c: (c[0], c[1], c[2]))
+    diversa, _, d, n, m = cands[0]
+    nota = f"profile '{n}'"
     if m is not None:
-        nota += f" (tarato a {m:.1f} MP, generi a {mp_target:.1f} MP)"
+        nota += f" (calibrated at {m:.1f} MP, generating at {mp_target:.1f} MP)"
         if d > math.log(1.3):
-            nota += f" — risoluzione lontana: conviene tarare a {mp_target:.1f} MP"
+            nota += f" - resolution far off: better to calibrate at {mp_target:.1f} MP"
     if len(cands) > 1:
-        nota += f" [scelto fra {len(cands)} profili dello stesso modello]"
+        nota += f" [picked from {len(cands)} profiles of the same model]"
+    if lora and diversa:
+        nota += " [calibrated WITHOUT these LoRAs]"
     if not imp.startswith("v"):
-        nota += " [impronta solo architettura: verifica che sia il profilo giusto]"
+        nota += " [architecture-only fingerprint: check it is the right profile]"
     print(f"[AlchemicaPro] {nota}")
     return n, nota

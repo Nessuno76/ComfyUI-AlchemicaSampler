@@ -1,0 +1,9 @@
+# one option per line; use it in a prompt as __hair_colour__
+jet-black
+dark brown
+chestnut
+auburn
+copper red
+honey blonde
+platinum blonde
+silver grey

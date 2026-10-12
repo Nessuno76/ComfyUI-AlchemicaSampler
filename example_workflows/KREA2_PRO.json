@@ -105,7 +105,7 @@
   },
   {
    "id": 4,
-   "type": "AlchemicaLoraStack",
+   "type": "AlchemicaLoraLoader",
    "pos": [
     480,
     40
@@ -145,29 +145,23 @@
       3
      ],
      "slot_index": 1
-    },
-    {
-     "name": "riepilogo",
-     "type": "STRING",
-     "links": null,
-     "slot_index": 2
     }
    ],
    "properties": {
-    "Node name for S&R": "AlchemicaLoraStack"
+    "Node name for S&R": "AlchemicaLoraLoader"
    },
    "widgets_values": [
-    "(nessuna)",
+    "(none)",
     1.0,
-    "(nessuna)",
+    "(none)",
     1.0,
-    "(nessuna)",
+    "(none)",
     1.0,
-    "(nessuna)",
+    "(none)",
     1.0,
-    "(nessuna)",
+    "(none)",
     1.0,
-    "(nessuna)",
+    "(none)",
     1.0,
     1.0
    ],
@@ -177,7 +171,7 @@
   },
   {
    "id": 5,
-   "type": "AlchemicaPromptFasi",
+   "type": "AlchemicaTwoPhaseEncode",
    "pos": [
     40,
     500
@@ -198,7 +192,7 @@
    ],
    "outputs": [
     {
-     "name": "positive_scena",
+     "name": "positive_scene",
      "type": "CONDITIONING",
      "links": [
       5
@@ -206,7 +200,7 @@
      "slot_index": 0
     },
     {
-     "name": "positive_dettaglio",
+     "name": "positive_detail",
      "type": "CONDITIONING",
      "links": [
       6
@@ -214,7 +208,7 @@
      "slot_index": 1
     },
     {
-     "name": "testo_dettaglio",
+     "name": "detail_text",
      "type": "STRING",
      "links": [
       15
@@ -223,12 +217,12 @@
     }
    ],
    "properties": {
-    "Node name for S&R": "AlchemicaPromptFasi"
+    "Node name for S&R": "AlchemicaTwoPhaseEncode"
    },
    "widgets_values": [
     "Cinematic portrait of a woman in her thirties with dark curly hair, sitting by a café window at night, rain on the glass, neon reflections on her face, looking at the camera, shallow depth of field, 85 mm lens.",
     "Raw unretouched photograph: visible skin pores, fine vellus hair, small natural imperfections, true-to-life skin colour, sharp eyelashes, real fabric texture, no airbrushing, no makeup filter.",
-    "aggiungi alla scena"
+    "scene + detail"
    ],
    "title": "⚗ Two-phase prompt",
    "color": "#232",
@@ -282,7 +276,7 @@
   },
   {
    "id": 7,
-   "type": "AlchemicaKreaPro",
+   "type": "AlchemicaKSamplerPro",
    "pos": [
     960,
     40
@@ -311,7 +305,7 @@
      "link": 7
     },
     {
-     "name": "positive_dettaglio",
+     "name": "positive_detail",
      "type": "CONDITIONING",
      "link": 6
     },
@@ -321,7 +315,7 @@
      "link": null
     },
     {
-     "name": "modello_rifinitura",
+     "name": "refiner_model",
      "type": "MODEL",
      "link": null
     },
@@ -341,7 +335,7 @@
      "slot_index": 0
     },
     {
-     "name": "grafico_sigma",
+     "name": "sigma_plot",
      "type": "IMAGE",
      "links": null,
      "slot_index": 1
@@ -355,7 +349,7 @@
      "slot_index": 2
     },
     {
-     "name": "seed_usato",
+     "name": "used_seed",
      "type": "INT",
      "links": [
       12
@@ -364,13 +358,13 @@
     }
    ],
    "properties": {
-    "Node name for S&R": "AlchemicaKreaPro"
+    "Node name for S&R": "AlchemicaKSamplerPro"
    },
    "widgets_values": [
     12345,
     "fixed",
     "(auto)",
-    "equilibrato",
+    "balanced",
     true,
     -1.0,
     0.12,

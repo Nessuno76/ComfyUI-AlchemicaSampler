@@ -140,7 +140,7 @@
   },
   {
    "id": 5,
-   "type": "AlchemicaLoraStack",
+   "type": "AlchemicaLoraLoader",
    "pos": [
     480,
     40
@@ -180,29 +180,23 @@
       4
      ],
      "slot_index": 1
-    },
-    {
-     "name": "riepilogo",
-     "type": "STRING",
-     "links": null,
-     "slot_index": 2
     }
    ],
    "properties": {
-    "Node name for S&R": "AlchemicaLoraStack"
+    "Node name for S&R": "AlchemicaLoraLoader"
    },
    "widgets_values": [
-    "(nessuna)",
+    "(none)",
     1.0,
-    "(nessuna)",
+    "(none)",
     1.0,
-    "(nessuna)",
+    "(none)",
     1.0,
-    "(nessuna)",
+    "(none)",
     1.0,
-    "(nessuna)",
+    "(none)",
     1.0,
-    "(nessuna)",
+    "(none)",
     1.0,
     1.0
    ],
@@ -212,7 +206,7 @@
   },
   {
    "id": 6,
-   "type": "AlchemicaLoraStack",
+   "type": "AlchemicaLoraLoader",
    "pos": [
     480,
     500
@@ -250,29 +244,23 @@
      "type": "CLIP",
      "links": null,
      "slot_index": 1
-    },
-    {
-     "name": "riepilogo",
-     "type": "STRING",
-     "links": null,
-     "slot_index": 2
     }
    ],
    "properties": {
-    "Node name for S&R": "AlchemicaLoraStack"
+    "Node name for S&R": "AlchemicaLoraLoader"
    },
    "widgets_values": [
-    "(nessuna)",
+    "(none)",
     1.0,
-    "(nessuna)",
+    "(none)",
     1.0,
-    "(nessuna)",
+    "(none)",
     1.0,
-    "(nessuna)",
+    "(none)",
     1.0,
-    "(nessuna)",
+    "(none)",
     1.0,
-    "(nessuna)",
+    "(none)",
     1.0,
     1.0
    ],
@@ -367,7 +355,7 @@
   },
   {
    "id": 9,
-   "type": "AlchemicaKrea",
+   "type": "AlchemicaKSampler",
    "pos": [
     960,
     40
@@ -401,7 +389,7 @@
      "link": null
     },
     {
-     "name": "modello_rifinitura",
+     "name": "refiner_model",
      "type": "MODEL",
      "link": 6
     },
@@ -421,7 +409,7 @@
      "slot_index": 0
     },
     {
-     "name": "grafico_sigma",
+     "name": "sigma_plot",
      "type": "IMAGE",
      "links": null,
      "slot_index": 1
@@ -436,13 +424,13 @@
     }
    ],
    "properties": {
-    "Node name for S&R": "AlchemicaKrea"
+    "Node name for S&R": "AlchemicaKSampler"
    },
    "widgets_values": [
     12345,
     "fixed",
     "(auto)",
-    "equilibrato",
+    "balanced",
     true,
     -1.0,
     0.12,

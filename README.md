@@ -90,6 +90,7 @@ and the report says so.
 
 | Workflow | Use it for |
 |---|---|
+| **KreaAlchemicaMente_K2AM** | **start here**: the essential linear pipeline Load → LoRA → Prompt → KSampler Flex (calibrated v2, two stages, DeGrid) → Save, in four coloured groups with a quick guide |
 | **KREA2_COMPLETO** | everything together: loader → prompt enhancer → text → attention guidance (NAG) → AlchemicaKrea Pro |
 | **KREA2_SEMPLICE** | the essential: LoRA stack + AlchemicaKrea, one node to sample |
 | **KREA2_PRO** | two-phase prompt, previews and refinement variants, prompts written by hand |

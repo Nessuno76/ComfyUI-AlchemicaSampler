@@ -165,7 +165,7 @@ class AlchemicaFusioneVolti:
                                         "changing the text encoder)"}),
             "compensa_pelle": ("BOOLEAN", {"default": True,
                                "tooltip": "Krea 2 paints skin lighter than the words say. On = picks the word by a table MEASURED on "
-                                          "fineporn v4 (ITA of the painted skin), so the image matches the blend of the photos. "
+                                          "a fine-tuned NVFP4 checkpoint (ITA of the painted skin), so the image matches the blend of the photos. "
                                           "Off = plain words (other checkpoints)"}),
         })
         return {"required": req,

@@ -106,7 +106,7 @@
   },
   {
    "id": 4,
-   "type": "AlchemicaLoraStack",
+   "type": "AlchemicaLoraLoader",
    "pos": [
     480,
     40
@@ -146,31 +146,23 @@
       3
      ],
      "slot_index": 1
-    },
-    {
-     "name": "riepilogo",
-     "type": "STRING",
-     "links": [
-      11
-     ],
-     "slot_index": 2
     }
    ],
    "properties": {
-    "Node name for S&R": "AlchemicaLoraStack"
+    "Node name for S&R": "AlchemicaLoraLoader"
    },
    "widgets_values": [
-    "(nessuna)",
+    "(none)",
     1.0,
-    "(nessuna)",
+    "(none)",
     1.0,
-    "(nessuna)",
+    "(none)",
     1.0,
-    "(nessuna)",
+    "(none)",
     1.0,
-    "(nessuna)",
+    "(none)",
     1.0,
-    "(nessuna)",
+    "(none)",
     1.0,
     1.0
    ],
@@ -265,7 +257,7 @@
   },
   {
    "id": 7,
-   "type": "AlchemicaKrea",
+   "type": "AlchemicaKSampler",
    "pos": [
     960,
     40
@@ -299,7 +291,7 @@
      "link": null
     },
     {
-     "name": "modello_rifinitura",
+     "name": "refiner_model",
      "type": "MODEL",
      "link": null
     },
@@ -319,7 +311,7 @@
      "slot_index": 0
     },
     {
-     "name": "grafico_sigma",
+     "name": "sigma_plot",
      "type": "IMAGE",
      "links": null,
      "slot_index": 1
@@ -334,13 +326,13 @@
     }
    ],
    "properties": {
-    "Node name for S&R": "AlchemicaKrea"
+    "Node name for S&R": "AlchemicaKSampler"
    },
    "widgets_values": [
     12345,
     "fixed",
     "(auto)",
-    "equilibrato",
+    "balanced",
     true,
     -1.0,
     0.12,
@@ -463,41 +455,6 @@
    "title": "report"
   },
   {
-   "id": 11,
-   "type": "PreviewAny",
-   "pos": [
-    960,
-    800
-   ],
-   "size": [
-    400,
-    120
-   ],
-   "flags": {},
-   "order": 10,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "source",
-     "type": "*",
-     "link": 11
-    }
-   ],
-   "outputs": [
-    {
-     "name": "STRING",
-     "type": "STRING",
-     "links": null,
-     "slot_index": 0
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "PreviewAny"
-   },
-   "widgets_values": [],
-   "title": "active LoRAs"
-  },
-  {
    "id": 12,
    "type": "Note",
    "pos": [
@@ -600,14 +557,6 @@
    7,
    2,
    10,
-   0,
-   "STRING"
-  ],
-  [
-   11,
-   4,
-   2,
-   11,
    0,
    "STRING"
   ]

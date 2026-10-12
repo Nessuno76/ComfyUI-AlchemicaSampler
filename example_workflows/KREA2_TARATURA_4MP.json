@@ -199,7 +199,7 @@
   },
   {
    "id": 6,
-   "type": "AlchemicaTaratura",
+   "type": "AlchemicaCalibration",
    "pos": [
     980,
     40
@@ -228,20 +228,20 @@
      "link": 4
     },
     {
-     "name": "modello_riferimento",
+     "name": "reference_model",
      "type": "MODEL",
      "link": null
     }
    ],
    "outputs": [
     {
-     "name": "latent_riferimento",
+     "name": "reference_latent",
      "type": "LATENT",
      "links": null,
      "slot_index": 0
     },
     {
-     "name": "grafico",
+     "name": "plot",
      "type": "IMAGE",
      "links": [
       5
@@ -258,7 +258,7 @@
     }
    ],
    "properties": {
-    "Node name for S&R": "AlchemicaTaratura"
+    "Node name for S&R": "AlchemicaCalibration"
    },
    "widgets_values": [
     1001,
@@ -266,7 +266,7 @@
     40,
     1.0,
     "krea2_nvfp4_4MP",
-    "accumula"
+    "accumulate"
    ],
    "title": "⚗ Calibration 1/4 - portrait",
    "color": "#253",
@@ -376,7 +376,7 @@
   },
   {
    "id": 10,
-   "type": "AlchemicaTaratura",
+   "type": "AlchemicaCalibration",
    "pos": [
     980,
     370
@@ -405,20 +405,20 @@
      "link": 10
     },
     {
-     "name": "modello_riferimento",
+     "name": "reference_model",
      "type": "MODEL",
      "link": null
     }
    ],
    "outputs": [
     {
-     "name": "latent_riferimento",
+     "name": "reference_latent",
      "type": "LATENT",
      "links": null,
      "slot_index": 0
     },
     {
-     "name": "grafico",
+     "name": "plot",
      "type": "IMAGE",
      "links": [
       11
@@ -435,7 +435,7 @@
     }
    ],
    "properties": {
-    "Node name for S&R": "AlchemicaTaratura"
+    "Node name for S&R": "AlchemicaCalibration"
    },
    "widgets_values": [
     1002,
@@ -443,7 +443,7 @@
     40,
     1.0,
     "krea2_nvfp4_4MP",
-    "accumula"
+    "accumulate"
    ],
    "title": "⚗ Calibration 2/4 - half body",
    "color": "#253",
@@ -553,7 +553,7 @@
   },
   {
    "id": 14,
-   "type": "AlchemicaTaratura",
+   "type": "AlchemicaCalibration",
    "pos": [
     980,
     700
@@ -582,20 +582,20 @@
      "link": 16
     },
     {
-     "name": "modello_riferimento",
+     "name": "reference_model",
      "type": "MODEL",
      "link": null
     }
    ],
    "outputs": [
     {
-     "name": "latent_riferimento",
+     "name": "reference_latent",
      "type": "LATENT",
      "links": null,
      "slot_index": 0
     },
     {
-     "name": "grafico",
+     "name": "plot",
      "type": "IMAGE",
      "links": [
       17
@@ -612,7 +612,7 @@
     }
    ],
    "properties": {
-    "Node name for S&R": "AlchemicaTaratura"
+    "Node name for S&R": "AlchemicaCalibration"
    },
    "widgets_values": [
     1003,
@@ -620,7 +620,7 @@
     40,
     1.0,
     "krea2_nvfp4_4MP",
-    "accumula"
+    "accumulate"
    ],
    "title": "⚗ Calibration 3/4 - full figure",
    "color": "#253",
@@ -730,7 +730,7 @@
   },
   {
    "id": 18,
-   "type": "AlchemicaTaratura",
+   "type": "AlchemicaCalibration",
    "pos": [
     980,
     1030
@@ -759,20 +759,20 @@
      "link": 22
     },
     {
-     "name": "modello_riferimento",
+     "name": "reference_model",
      "type": "MODEL",
      "link": null
     }
    ],
    "outputs": [
     {
-     "name": "latent_riferimento",
+     "name": "reference_latent",
      "type": "LATENT",
      "links": null,
      "slot_index": 0
     },
     {
-     "name": "grafico",
+     "name": "plot",
      "type": "IMAGE",
      "links": [
       23
@@ -789,7 +789,7 @@
     }
    ],
    "properties": {
-    "Node name for S&R": "AlchemicaTaratura"
+    "Node name for S&R": "AlchemicaCalibration"
    },
    "widgets_values": [
     1004,
@@ -797,7 +797,7 @@
     40,
     1.0,
     "krea2_nvfp4_4MP",
-    "accumula"
+    "accumulate"
    ],
    "title": "⚗ Calibration 4/4 - still life",
    "color": "#253",

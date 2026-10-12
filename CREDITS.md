@@ -36,6 +36,12 @@ Kyong Hwan Jin, Seungryong Kim** — Perturbed-Attention Guidance (arXiv:2403.17
 
 **Susung Hong** — Smoothed Energy Guidance (arXiv:2408.00760, NeurIPS 2024).
 
+**HiFlow** (arXiv:2504.06232) — the idea of anchoring the low frequencies of the second stage to the first-stage image (our experimental low-frequency anchor). · *L'idea di ancorare le basse frequenze del secondo stadio all'immagine del primo.*
+
+**SharpEuler** (arXiv:2605.11547) — the Euler-optimal square-root step-density law that the Calibration builds on and extends to second order in v2. · *La legge a radice quadrata della densità degli step per Euler, su cui si basa la Calibrazione e che la v2 estende al secondo ordine.*
+
+**The VAE grid measurement (DeGrid)** — the idea of measuring the decoder's grid pattern and removing it from the decoded image. · *L'idea di misurare la griglia del decoder e toglierla dall'immagine decodificata.*
+
 **pamparamm** — sd-perturbed-attention, the reference collection of attention guidance methods for ComfyUI.
 
 **pythongosssss** — ComfyUI-Custom-Scripts, whose ShowText node accompanied the whole development.

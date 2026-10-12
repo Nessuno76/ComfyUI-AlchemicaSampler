@@ -89,7 +89,8 @@ VIETATE = ["droplet", "droplets", "bead", "beads", "beaded", "glistening", "dewy
            "sweat", "wet skin", "damp skin", "glossy skin", "imperfection", "imperfections", "blemish", "blemishes"]
 
 
-def costruisci_chat(idea, stile, parole, con_immagine, pelle=PELLE_DEFAULT, istruzioni=""):
+def sistema(stile="foto realistica", parole=80, pelle=PELLE_DEFAULT, istruzioni=""):
+    """System prompt (same rules for every backend: Krea 2 text encoder or Ollama)."""
     scena_parole = f"{max(30, int(parole * 0.7))} to {max(40, int(parole))}"
     # il DETTAGLIO ora porta anche l'anatomia: un po' piu' di spazio (era 0.25-0.4)
     dett_parole = f"{max(20, int(parole * 0.3))} to {max(35, int(parole * 0.5))}"
@@ -97,16 +98,52 @@ def costruisci_chat(idea, stile, parole, con_immagine, pelle=PELLE_DEFAULT, istr
     istruzioni = (istruzioni or "").strip()
     extra = ("\n\nAdditional instructions from the user. Follow them; when they conflict with the rules above, "
              "these win:\n" + istruzioni) if istruzioni else ""
-    sistema = SISTEMA.format(scena_parole=scena_parole, dett_parole=dett_parole, pelle=p_dett,
-                             regola_pelle=p_regola, stile=STILI.get(stile, ""), extra=extra)
+    return SISTEMA.format(scena_parole=scena_parole, dett_parole=dett_parole, pelle=p_dett,
+                          regola_pelle=p_regola, stile=STILI.get(stile, ""), extra=extra)
+
+
+def utente(idea, con_immagine, modo="idea", formato=""):
+    """User message. modo 'idea' = write from an idea; 'migliora' = rewrite a prompt the user already wrote.
+    formato = the frame of the final image (from the latent), so framing and camera distance suit it."""
+    testo = _utente(idea, con_immagine, modo)
+    return testo + ("\n" + formato if formato else "")
+
+
+def descrivi_formato(w, h):
+    """'Frame: vertical 2:3 (1024x1536 px). ...' for the LLM."""
+    from math import gcd
+    r = w / h
+    nomi = {"1:1": 1, "2:3": 2 / 3, "3:2": 1.5, "3:4": 0.75, "4:3": 4 / 3, "4:5": 0.8, "5:4": 1.25,
+            "9:16": 9 / 16, "16:9": 16 / 9, "21:9": 21 / 9}
+    nome, err = min(((k, abs(v - r) / v) for k, v in nomi.items()), key=lambda x: x[1])
+    if err > 0.03:
+        g = gcd(int(w), int(h)) or 1
+        nome = f"{int(w) // g}:{int(h) // g}"
+    verso = "vertical (portrait)" if r < 0.87 else "horizontal (landscape)" if r > 1.15 else "square"
+    return (f"Frame: {verso} {nome} ({int(w)}x{int(h)} px). Compose the SCENE for this frame: subject placement, "
+            f"cropping and camera distance must suit its shape.")
+
+
+def _utente(idea, con_immagine, modo="idea"):
     idea = (idea or "").strip()
+    if modo == "migliora" and idea:
+        testo = ("Prompt to improve: " + idea + "\nRewrite it into the three lines. Keep every subject, object, "
+                 "colour, action and the intent it contains; fix contradictions, move each element to the right "
+                 "line and add only the concrete details that are missing.")
+        if con_immagine:
+            testo += " Use the image as the visual reference for what the prompt leaves open."
+        return testo
     if con_immagine:
-        utente = "<|vision_start|><|image_pad|><|vision_end|>" + (
-            f"Idea: {idea}\nUse the image as the visual reference for subject, composition and light, and apply the idea."
-            if idea else "Describe this image as a prompt that would recreate it.")
-    else:
-        utente = f"Idea: {idea}"
-    return (f"<|im_start|>system\n{sistema}<|im_end|>\n<|im_start|>user\n{utente}<|im_end|>\n"
+        return (f"Idea: {idea}\nUse the image as the visual reference for subject, composition and light, "
+                f"and apply the idea." if idea else "Describe this image as a prompt that would recreate it.")
+    return f"Idea: {idea}"
+
+
+def costruisci_chat(idea, stile, parole, con_immagine, pelle=PELLE_DEFAULT, istruzioni="", modo="idea"):
+    """Qwen3-VL chat template for the Krea 2 text encoder."""
+    vis = "<|vision_start|><|image_pad|><|vision_end|>" if con_immagine else ""
+    return (f"<|im_start|>system\n{sistema(stile, parole, pelle, istruzioni)}<|im_end|>\n"
+            f"<|im_start|>user\n{vis}{utente(idea, con_immagine, modo)}<|im_end|>\n"
             f"<|im_start|>assistant\n<think>\n\n</think>\n\n")
 
 
@@ -162,17 +199,9 @@ def unisci_negativo(neg, base=NEGATIVO_BASE):
     return ", ".join(voci)
 
 
-def genera(clip, idea, stile="foto realistica", parole=80, creativita=0.0, seed=0, immagine=None, max_token=400,
-           pelle=PELLE_DEFAULT, istruzioni=""):
-    chat = costruisci_chat(idea, stile, parole, immagine is not None, pelle, istruzioni)
-    tokens = clip.tokenize(chat, image=immagine, min_length=1)
-    campiona = creativita > 0
-    ids = clip.generate(tokens, do_sample=campiona, max_length=int(max_token),
-                        temperature=float(creativita) if campiona else 1.0,
-                        top_k=64 if campiona else 50, top_p=0.95, min_p=0.05 if campiona else 0.0,
-                        repetition_penalty=1.05, seed=int(seed))
-    grezzo = clip.decode(ids)
-    grezzo = re.sub(r"<think>.*?</think>", "", grezzo, flags=re.S).strip()
+def rifinisci(grezzo, idea="", pelle=PELLE_DEFAULT):
+    """Raw model text -> (scene, detail, negative, removed phrases): labels, forbidden words, NAG negative."""
+    grezzo = re.sub(r"<think>.*?</think>", "", grezzo or "", flags=re.S).strip()
     parti = analizza(grezzo)
     _, _, p_neg = PELLE.get(pelle, PELLE[PELLE_DEFAULT])
     vietate = VIETATE + (PELURIA if p_neg else [])
@@ -185,4 +214,19 @@ def genera(clip, idea, stile="foto realistica", parole=80, creativita=0.0, seed=
     if _NUDO.search(tutto):
         base += ", " + SENO_NEG
     neg = unisci_negativo(parti["negativo"], base)
-    return scena, dett, neg, grezzo, t1 + t2
+    return scena, dett, neg, t1 + t2
+
+
+def genera(clip, idea, stile="foto realistica", parole=80, creativita=0.0, seed=0, immagine=None, max_token=400,
+           pelle=PELLE_DEFAULT, istruzioni=""):
+    chat = costruisci_chat(idea, stile, parole, immagine is not None, pelle, istruzioni)
+    tokens = clip.tokenize(chat, image=immagine, min_length=1)
+    campiona = creativita > 0
+    ids = clip.generate(tokens, do_sample=campiona, max_length=int(max_token),
+                        temperature=float(creativita) if campiona else 1.0,
+                        top_k=64 if campiona else 50, top_p=0.95, min_p=0.05 if campiona else 0.0,
+                        repetition_penalty=1.05, seed=int(seed))
+    grezzo = clip.decode(ids)
+    grezzo = re.sub(r"<think>.*?</think>", "", grezzo, flags=re.S).strip()
+    scena, dett, neg, tolti = rifinisci(grezzo, idea, pelle)
+    return scena, dett, neg, grezzo, tolti

@@ -191,7 +191,7 @@
   },
   {
    "id": 6,
-   "type": "AlchemicaScheduleOpts",
+   "type": "AlchemicaOptionsSchedule",
    "pos": [
     1000,
     40
@@ -212,7 +212,7 @@
    ],
    "outputs": [
     {
-     "name": "ALCHEMICA_OPTS",
+     "name": "opts",
      "type": "ALCHEMICA_OPTS",
      "links": [
       2
@@ -221,10 +221,10 @@
     }
    ],
    "properties": {
-    "Node name for S&R": "AlchemicaScheduleOpts"
+    "Node name for S&R": "AlchemicaOptionsSchedule"
    },
    "widgets_values": [
-    "alchemica_tarato",
+    "alchemica_calibrated",
     10,
     1.0,
     0.1,
@@ -428,7 +428,7 @@
   },
   {
    "id": 11,
-   "type": "AlchemicaSampler",
+   "type": "AlchemicaSamplerAdvanced",
    "pos": [
     1760,
     40
@@ -483,7 +483,7 @@
      "slot_index": 1
     },
     {
-     "name": "grafico_sigma",
+     "name": "sigma_plot",
      "type": "IMAGE",
      "links": [
       13
@@ -500,12 +500,12 @@
     }
    ],
    "properties": {
-    "Node name for S&R": "AlchemicaSampler"
+    "Node name for S&R": "AlchemicaSamplerAdvanced"
    },
    "widgets_values": [
     12345,
     "fixed",
-    "foto_tarata_2K",
+    "photo_calibrated_2K",
     "krea2_nvfp4_3MP",
     1.0
    ],
