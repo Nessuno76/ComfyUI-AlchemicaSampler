@@ -38,28 +38,38 @@ def profile_mps(prof):
 def pick_by_resolution(model, mp_target):
     """-> (nome, nota). nome "" se non c'e' nessun profilo per questo checkpoint."""
     imp = taratura.fingerprint(model)
+    imp2 = taratura.fingerprint2(model)
     lora = taratura.lora_signature(model)
-    if not imp or imp == "sconosciuta":
+    if (not imp or imp == "sconosciuta") and not imp2:
         return "", "model fingerprint unreadable: pick the profile by hand"
-    cands = []
+    cands, kinds = [], {}
     for n in schedules.profile_names():
         p = schedules.load_profile(n)
-        if not p or p.get("impronta") != imp:
+        kinds[n] = schedules.profile_matches(p, imp, imp2)
+    best_kind = min((k for k in kinds.values() if k is not None), default=None)
+    for n, k in kinds.items():
+        if k is None or k != best_kind:
             continue
+        p = schedules.load_profile(n)
         mps = profile_mps(p)
         diversa = 0 if p.get("lora", "") == lora else 1     # same LoRA stack first (2026-10-10)
         senza_v2 = 0 if int(p.get("campioni_v2", 0) or 0) > 0 else 1   # then profiles with calibration-v2 curves
+        # 2026-10-19: reliable profiles (>= MIN_CAMPIONI samples) before everything else, even before the LoRA match
+        provv = 0 if schedules.affidabile(p) else 1
         if not mps:
-            cands.append((diversa, senza_v2, math.inf, n, None))
+            cands.append((provv, diversa, senza_v2, math.inf, n, None))
             continue
         best = min(mps, key=lambda m: abs(math.log(m / mp_target)))
-        cands.append((diversa, senza_v2, abs(math.log(best / mp_target)), n, best))
+        cands.append((provv, diversa, senza_v2, abs(math.log(best / mp_target)), n, best))
     if not cands:
         print(f"[AlchemicaPro] no calibrated profile for this model (fingerprint {imp})")
         return "", "NO profile for this model: fallback values (run the Calibration)"
-    cands.sort(key=lambda c: (c[0], c[1], c[2]))
-    diversa, _, d, n, m = cands[0]
+    cands.sort(key=lambda c: (c[0], c[1], c[2], c[3]))
+    provv, diversa, _, d, n, m = cands[0]
     nota = f"profile '{n}'"
+    if provv:
+        nota += (f" [PROVISIONAL: only {schedules.campioni(schedules.load_profile(n))} sample(s), "
+                 f"{schedules.MIN_CAMPIONI} needed]")
     if m is not None:
         nota += f" (calibrated at {m:.1f} MP, generating at {mp_target:.1f} MP)"
         if d > math.log(1.3):
@@ -68,7 +78,13 @@ def pick_by_resolution(model, mp_target):
         nota += f" [picked from {len(cands)} profiles of the same model]"
     if lora and diversa:
         nota += " [calibrated WITHOUT these LoRAs]"
-    if not imp.startswith("v"):
-        nota += " [architecture-only fingerprint: check it is the right profile]"
+    if best_kind == 1:
+        if not imp.startswith("v"):
+            nota += " [architecture-only fingerprint: check it is the right profile]"
+        elif len(cands) > 1:
+            nota += (f" [legacy fingerprint shared by {len(cands)} profiles: if this is the wrong one, pick the right "
+                     f"profile by hand once (it then learns this checkpoint) or re-run the Calibration]")
+        else:
+            nota += " [old profile: re-run the Calibration to add the v2 fingerprint]"
     print(f"[AlchemicaPro] {nota}")
     return n, nota

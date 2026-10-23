@@ -42,6 +42,10 @@ Kyong Hwan Jin, Seungryong Kim** — Perturbed-Attention Guidance (arXiv:2403.17
 
 **The VAE grid measurement (DeGrid)** — the idea of measuring the decoder's grid pattern and removing it from the decoded image. · *L'idea di misurare la griglia del decoder e toglierla dall'immagine decodificata.*
 
+**Martin Rizzo** — ComfyUI-ZImagePowerNodes (MIT): the idea of picking presets from a gallery with sample thumbnails
+and of keeping them in editable text libraries, which inspired our framing gallery (our own code, format and images). ·
+*L'idea di scegliere i preset da una galleria con miniature e di tenerli in librerie di testo modificabili.*
+
 **pamparamm** — sd-perturbed-attention, the reference collection of attention guidance methods for ComfyUI.
 
 **pythongosssss** — ComfyUI-Custom-Scripts, whose ShowText node accompanied the whole development.

@@ -174,6 +174,7 @@ def alchemica_loop(model, x, sigmas, extra_args=None, callback=None, disable=Non
     ctx = Ctx(model, extra_args, x.new_ones([x.shape[0]]), callback)
     gen = torch.Generator(device="cpu").manual_seed((int(noise_seed) + 0xA1C4E) & 0xFFFFFFFFFFFFFFFF)
     n = len(sigmas) - 1
+    det_max = [0.0, 0.0]                                    # strongest detail boost applied, and its sigma
 
     for i in trange(n, disable=disable):
         s = float(sigmas[i])
@@ -188,18 +189,21 @@ def alchemica_loop(model, x, sigmas, extra_args=None, callback=None, disable=Non
             continue
 
         is_final = s_next <= 1e-6
-        if s < DETAIL_FLOOR:
-            detail_amount = 0.0
+        # 2026-10-19: local amount. Before, the parameter itself was set to 0 below the floor, so after a RESTART
+        # (sigma jumps back up) the detail boost stayed off for the rest of the loop.
+        amt = detail_amount if s >= DETAIL_FLOOR else 0.0
         is_plunge = (s - s_next) > 0.25
         a = 0.0
-        if not (is_final or is_plunge) and detail_amount != 0.0:
+        if not (is_final or is_plunge) and amt != 0.0:
             if detail_sigma_hi > detail_sigma_lo > 0.0:     # finestra in sigma (dal profilo)
                 lo = max(detail_sigma_lo, DETAIL_FLOOR)
                 u = (detail_sigma_hi - s) / max(detail_sigma_hi - lo, 1e-6)
-                a = detail_amount * detail_envelope(u, 0.0, 1.0, detail_peak)
+                a = amt * detail_envelope(u, 0.0, 1.0, detail_peak)
             else:                                           # finestra in frazione di percorso
-                a = detail_amount * detail_envelope(i / max(n - 1, 1), detail_start, detail_end, detail_peak)
+                a = amt * detail_envelope(i / max(n - 1, 1), detail_start, detail_end, detail_peak)
             a = max(-1.0, min(1.0, a))
+        if abs(a) > abs(det_max[0]):
+            det_max[0], det_max[1] = a, s
         s_model = max(1e-4, s - a * (s - s_next))
 
         denoised = ctx.denoise(x, s_model)
@@ -222,6 +226,8 @@ def alchemica_loop(model, x, sigmas, extra_args=None, callback=None, disable=Non
 
     if stats is not None:
         stats["nfe"] = stats.get("nfe", 0) + ctx.nfe
+        if detail_amount != 0.0:
+            stats.setdefault("detail", []).append((float(detail_amount), det_max[0], det_max[1]))
     return x
 
 

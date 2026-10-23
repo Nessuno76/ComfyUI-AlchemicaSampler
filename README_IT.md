@@ -93,7 +93,7 @@ basse frequenze alle alte. Sul modello vero la conferma va fatta con il workflow
 | ⚗ Alchemica · Guida (CFG) | cfg dipendente da σ |
 | ⚗ Alchemica · Due stadi | scala del primo stadio, σ di passaggio, step, upscale |
 | ⚗ Alchemica · Sigmas / Sampler (SAMPLER) | per usare pezzi di Alchemica in `SamplerCustom` |
-| **⚗ Alchemica · LoRA (pila di 6)** | fino a 6 LoRA in un nodo, con pesi indipendenti; uscita MODEL/CLIP da collegare al sampler (o al modello di rifinitura). Nessuna dipendenza esterna |
+| **⚗ Alchemica LoRA Stack+** | quante LoRA vuoi (➕ *Add LoRA*), forza reale su ogni riga (±2 con frecce e trascinamento, fino a ±5 scritta a mano), selettore con anteprime, modello base e striscia delle LoRA attive; scheda per LoRA con trigger word (`T` verde = aggiunte da sole al ⚗ Prompt), peso consigliato e ricerca su Civitai; dopo l'esecuzione segnala le LoRA che non agganciano nessun layer del modello; anteprima mancante: clic sul riquadro, trascina un'immagine o usa l'ultima generata. Il vecchio nodo da 6 resta per i workflow salvati (tasto destro → *Upgrade*) |
 | ⚗ Alchemica · Risoluzione | latente Krea 2 da aspetto + megapixel |
 
 ## 5. Preset

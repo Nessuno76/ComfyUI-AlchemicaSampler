@@ -78,13 +78,14 @@ Runs a dense euler trajectory (40–60 steps) and records the model's prediction
 - optionally, the NVFP4 error against a reference model (e.g. FP8) on the very same states.
 
 Profiles accumulate (re-running the same prompt updates its sample), carry a checkpoint fingerprint and the
-resolutions they were measured at. Checkpoints with exotic quantisations may only give an "architecture" fingerprint:
+resolutions they were measured at. Since 1.1.1 the fingerprint reads every weight (quantised data included), so
+a fine-tune is no longer mistaken for its base model; older profiles learn it when you pick them by hand once. Checkpoints with exotic quantisations may only give an "architecture" fingerprint:
 the report warns you; choose the profile by hand in that case.
 
 ### Other nodes
 **⚗ AlchemicaSampler (advanced)** with option nodes (Schedule, Solver & Detail, Restart, Guidance, Two stages),
 **⚗ Alchemica · Sigmas** and **Sampler (SAMPLER)** for `SamplerCustom`, **⚗ Alchemica · Resolution** (Krea 2 latent from
-aspect + megapixels, sides multiple of 16), **⚗ Alchemica · LoRA (stack of 6)**, **⚗ Alchemica · Two-phase prompt**,
+aspect + megapixels, sides multiple of 16), **⚗ Alchemica LoRA Stack+** (slots on demand, real strengths, previews), **⚗ Alchemica · Two-phase prompt**,
 **⚗ Alchemica · Number previews**.
 
 ### Glossary of parameter names

@@ -155,30 +155,6 @@ def ita_parole(ita):
     return ITA_NOMI[-1][1]
 
 
-def ita_da_crop(crop):
-    """crop: IMAGE [1,H,W,3] 0-1, the square face crop (face centred, ~45% of the side). Median L*, b* of the
-    nose / cheek band, shadows and highlights excluded. -> ITA in degrees, or None."""
-    import math
-    import torch
-    x = crop[0, :, :, :3].float()
-    H, W = x.shape[:2]
-    p = x[int(H * 0.58):int(H * 0.70), int(W * 0.38):int(W * 0.62)].reshape(-1, 3)
-    if p.shape[0] < 50:
-        return None
-    lin = torch.where(p <= 0.04045, p / 12.92, ((p + 0.055) / 1.055) ** 2.4)
-    M = torch.tensor([[0.4124, 0.3576, 0.1805], [0.2126, 0.7152, 0.0722], [0.0193, 0.1192, 0.9505]])
-    xyz = lin @ M.T
-    xyz = xyz / torch.tensor([0.95047, 1.0, 1.08883])
-    f = torch.where(xyz > 0.008856, xyz.clamp(min=1e-6) ** (1 / 3), 7.787 * xyz + 16 / 116)
-    L = 116 * f[:, 1] - 16
-    b = 200 * (f[:, 1] - f[:, 2])
-    ok = (L > 20) & (L < 92)
-    if ok.sum() < 30:
-        return None
-    Lm, bm = float(L[ok].median()), float(b[ok].median())
-    return math.degrees(math.atan((Lm - 50) / max(bm, 1.0)))
-
-
 # Calibration of the WORDS against what Krea 2 actually PAINTS (a fine-tuned NVFP4 checkpoint, "A woman with <word>" at the start
 # of the prompt, head-and-shoulders portrait, soft daylight, 1.5 MP; ITA measured with ita_da_immagine on the result;
 # 2026-10-01, 24 images, two seeds: repeatability about ±3°). The model has a strong bias to light skin and its

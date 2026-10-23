@@ -1,3 +1,6 @@
 __pycache__/
 *.pyc
 profili/
+.vscode/
+BRIEF_*.md
+.tracking

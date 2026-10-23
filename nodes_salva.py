@@ -71,7 +71,7 @@ class AlchemicaSalvaImmagine:
         if cartella == NUOVA:
             sotto = nuova_cartella.strip()
             if not sotto:
-                raise ValueError("Alchemica Salva immagine: scegli un nome in 'nuova_cartella'")
+                raise ValueError("Alchemica Save Image: write a name in 'new_folder'")
         elif cartella == RADICE:
             sotto = ""
         else:
@@ -150,7 +150,7 @@ def espandi_prefisso(prefisso):
     %date% = 2026-10-12, %time% = 18-30-05."""
     import datetime
     ora = datetime.datetime.now()
-    p = (prefisso or "").replace("%workflow%", "immagine")
+    p = (prefisso or "").replace("%workflow%", "image")
     p = p.replace("%date%", ora.strftime("%Y-%m-%d")).replace("%time%", ora.strftime("%H-%M-%S"))
     return pulisci(p)
 

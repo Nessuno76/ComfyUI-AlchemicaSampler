@@ -29,7 +29,7 @@ import comfy.utils
 from . import schedules
 from .fasi import make_guider_fasi
 from .noise import contract_noise
-from .pipeline import _even, _fix_latent, _sample, resolve_auto
+from .pipeline import guardia_duplicati, nota_dettaglio, _even, _fix_latent, _sample, resolve_auto
 
 
 def noise_downscaled(noise, h, w):
@@ -55,6 +55,7 @@ def run_pro(model, positive, negative, latent_dict, seed, cfg, denoise=1.0, mode
     latent = _fix_latent(model, latent_dict)
     is_empty = torch.count_nonzero(latent) == 0
     report = [("auto: " + ", ".join(auto_notes))] if auto_notes else []
+    guardia = guardia_duplicati(cfg, latent, is_empty, denoise)    # before the guiders: it can lower the hand-off
 
     # --- cambio di fase: -1 = sigma di passaggio misurata (composizione bloccata)
     if positive_dett is not None:
@@ -74,11 +75,12 @@ def run_pro(model, positive, negative, latent_dict, seed, cfg, denoise=1.0, mode
     t0 = time.perf_counter()
     batch_inds = latent_dict.get("batch_index", None)
 
+    report += guardia
     use_two = bool(cfg["two_stage"]) and is_empty and denoise >= 0.9999
     if cfg["two_stage"] and not use_two:
-        report.append("2 stadi ignorato: serve un latente vuoto e denoise = 1.0")
+        report.append("two stages ignored: they need an empty latent and denoise = 1.0")
     if model2 is not None and not use_two:
-        report.append("il modello di rifinitura e' stato IGNORATO: serve la modalita' a due stadi")
+        report.append("the refiner model was IGNORED: it needs the two-stage mode")
     if anteprime > 0 and not use_two:
         report.append("PREVIEWS IGNORED: they need the two stages (empty latent, denoise 1.0)")
         anteprime = 0
@@ -154,6 +156,7 @@ def run_pro(model, positive, negative, latent_dict, seed, cfg, denoise=1.0, mode
         plots = [("single stage", sig)]
         final_sigmas = sig
 
+    report += nota_dettaglio(cfg, stats)
     doppie = getattr(guider, "chiamate_doppie", 0) + (getattr(guider2, "chiamate_doppie", 0) if guider2 is not guider else 0)
     report.append(f"model calls: {stats['nfe'] or 'n/a (comfy solver)'}"
                   + (f" (+{doppie} for the blur)" if doppie else "")

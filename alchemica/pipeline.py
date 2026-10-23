@@ -94,24 +94,87 @@ def _even(v):
     return max(2, int(round(v / 2.0)) * 2)   # patch 2x2 del DiT -> latente pari
 
 
+# Krea 2 composes well up to about this WIDTH; above it, in ONE stage, a wide canvas gets the subject repeated (seen
+# 2026-10-16: 16:9 and 21:9 at 6 MP, 3344 px wide, people duplicated). Two stages compose at half size, then refine.
+# Only the width counts: a tall frame does not repeat the subject (it fills the height), and switching a 2:3 at 4 MP
+# (2512 px tall) to two stages gave a blotchy, speckled skin in 'fast' mode (2026-10-17).
+LATO_SICURO = 2400
+# 2026-10-20: when the guard switches two stages on, the profile hand-off (e.g. 0.88, measured on a 2:3 portrait)
+# re-noises the full-size canvas so much that stage 2 composes again above LATO_SICURO: at 3136x1344 Krea 2 zoomed in
+# and cut head and feet. The guard caps the hand-off here and turns the resolution correction on, so stage 1 really
+# composes and stage 2 only refines.
+HANDOFF_GUARDIA = 0.65
+
+
+def nota_dettaglio(cfg, stats):
+    """2026-10-19: says how much of the 'detail' boost was REALLY applied. The boost lives in the profile's sharpness
+    window (detail_sigma_hi -> lo) and is always off below sigma 0.25: a profile whose window sits low (e.g.
+    0.41 -> 0.12) leaves almost nothing of it, silently. Now the report says so."""
+    righe = stats.get("detail") or []
+    if not righe:
+        return []
+    voluto = max(abs(r[0]) for r in righe)
+    a, s = max(((r[1], r[2]) for r in righe), key=lambda t: abs(t[0]))
+    hi, lo = float(cfg.get("detail_sigma_hi", 0) or 0), float(cfg.get("detail_sigma_lo", 0) or 0)
+    finestra = f"window {hi:.2f} -> {max(lo, 0.25):.2f}" if hi > lo > 0 else "window by path fraction"
+    if abs(a) < 0.5 * voluto:
+        return [f"WARNING detail boost almost OFF: asked {voluto:.2f}, applied at most {abs(a):.3f} ({finestra}; "
+                f"no step falls inside it, or the window is below the 0.25 floor). Check the profile: a profile with "
+                f"few samples can put the sharpness window too low"]
+    return [f"detail boost: asked {voluto:.2f}, applied at most {abs(a):.3f} at sigma {s:.3f} ({finestra})"]
+
+
+def guardia_duplicati(cfg, latent, vuoto, denoise):
+    """Switches two stages on when a from-scratch image is wider than the model composes safely in one stage.
+    Opt-out: cfg['auto_two_stage'] = False. Changes cfg in place, returns the report lines."""
+    if cfg.get("two_stage") or not vuoto or denoise < 0.9999 or cfg.get("auto_two_stage", True) is False:
+        return []
+    H, W = latent.shape[-2] * 8, latent.shape[-1] * 8
+    if W <= LATO_SICURO:
+        return []
+    cfg["two_stage"] = True
+    righe = [f"two stages switched ON: {W}x{H} is wider than one stage composes safely ({LATO_SICURO} px), the "
+             f"subject would be repeated; composing at {W // 2}x{H // 2}, then refining at full size"]
+    h = float(cfg.get("handoff_sigma") or 0.0)
+    if h > HANDOFF_GUARDIA:
+        cfg["handoff_sigma"] = HANDOFF_GUARDIA
+        righe.append(f"hand-off capped {h:.3f} -> {HANDOFF_GUARDIA:.2f}: above it stage 2 composes the wide canvas "
+                     f"again and crops the subject")
+    if float(cfg.get("handoff_k", 1.0)) == 1.0:
+        cfg["handoff_k"] = 0.0
+    return righe
+
+
 def run(model, positive, negative, latent_dict, seed, cfg, denoise=1.0, model2=None):
     """model2: modello opzionale per il SECONDO stadio (compone con uno, rifinisce con l'altro)."""
     ms = model.get_model_object("model_sampling")
     cfg, auto_notes = resolve_auto(dict(cfg))
     latent = _fix_latent(model, latent_dict)
     is_empty = torch.count_nonzero(latent) == 0
-    guider = make_guider(model, positive, negative, cfg)
+    guardia = guardia_duplicati(cfg, latent, is_empty, denoise)    # before the guiders: it can lower the hand-off
+    comp = (getattr(model, "model_options", None) or {}).get("alchemica_composizione")
+    cambio = float(cfg.get("handoff_sigma") or 0.0)
+    if comp is not None and cfg.get("composition_phase", True) and cambio > 0.0:
+        # ⚗ Prompt with a strict framing: short text until the hand-off, full text after (zero extra cost)
+        from .fasi import make_guider_fasi
+        guider = make_guider_fasi(model, comp, negative, positive, cfg, cambio, 0.0)
+        comp_nota = f"composition phase: framing text until sigma {cambio:.3f}, full text after"
+    else:
+        guider, comp_nota = make_guider(model, positive, negative, cfg), ""
     guider2 = make_guider(model2, positive, negative, cfg) if model2 is not None else guider
     stats = {"nfe": 0}
     report, plots = ([("auto: " + ", ".join(auto_notes))] if auto_notes else []), []
+    if comp_nota:
+        report.append(comp_nota)
     t0 = time.perf_counter()
     batch_inds = latent_dict.get("batch_index", None)
 
+    report += guardia
     use_two = bool(cfg["two_stage"]) and is_empty and denoise >= 0.9999
     if cfg["two_stage"] and not use_two:
-        report.append("2 stadi ignorato: serve un latente vuoto e denoise = 1.0")
+        report.append("two stages ignored: they need an empty latent and denoise = 1.0")
     if model2 is not None and not use_two:
-        report.append("il modello di rifinitura e' stato IGNORATO: serve la modalita' a due stadi")
+        report.append("the refiner model was IGNORED: it needs the two-stage mode")
 
     if use_two:
         s1, s2 = schedules.two_stage_schedules(ms, cfg)
@@ -180,6 +243,7 @@ def run(model, positive, negative, latent_dict, seed, cfg, denoise=1.0, model2=N
                 report.append(nota)
         except Exception:
             pass
+    report += nota_dettaglio(cfg, stats)
     report.append(f"model calls: {stats['nfe'] or 'n/a (comfy solver)'}  "
                   f"total time: {time.perf_counter() - t0:.1f}s")
     out = latent_dict.copy()

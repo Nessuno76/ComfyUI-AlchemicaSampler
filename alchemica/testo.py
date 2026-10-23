@@ -119,7 +119,8 @@ def descrivi_formato(w, h):
     if err > 0.03:
         g = gcd(int(w), int(h)) or 1
         nome = f"{int(w) // g}:{int(h) // g}"
-    verso = "vertical (portrait)" if r < 0.87 else "horizontal (landscape)" if r > 1.15 else "square"
+    # not 'portrait' / 'landscape': the LLM copies the word into the scene and 'portrait' pulls the framing closer
+    verso = "vertical (taller than wide)" if r < 0.87 else "horizontal (wider than tall)" if r > 1.15 else "square"
     return (f"Frame: {verso} {nome} ({int(w)}x{int(h)} px). Compose the SCENE for this frame: subject placement, "
             f"cropping and camera distance must suit its shape.")
 
@@ -213,7 +214,13 @@ def rifinisci(grezzo, idea="", pelle=PELLE_DEFAULT):
         base += ", " + ANATOMIA_NEG
     if _NUDO.search(tutto):
         base += ", " + SENO_NEG
-    neg = unisci_negativo(parti["negativo"], base)
+    # "no visible chest, no visible feet...": a negative of a negative. NAG reads "visible chest" and pushes away
+    # from it (a front view came out turned from behind, 2026-10-17): those items are dropped
+    voci = [v.strip() for v in (parti["negativo"] or "").split(",")]
+    doppie = [v for v in voci if re.match(r"(?:no|not|without|never|lack of)\b", v, re.I)]
+    neg = unisci_negativo(", ".join(v for v in voci if v and v not in doppie), base)
+    if doppie:
+        t2 = t2 + [f"{len(doppie)} double negatives dropped from the negative (e.g. '{doppie[0]}')"]
     return scena, dett, neg, t1 + t2
 
 

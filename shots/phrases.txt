@@ -1,0 +1,20 @@
+# ⚗ AlchemicaSampler — opening phrases for ⚗ Prompt
+#
+# A sentence put in front of every prompt, as the authors of some fine-tunes recommend for their model.
+# One phrase per [section]; the name in brackets is what the ⚗ Prompt 'phrase' menu shows.
+#   text    the sentence (English)
+#   match   optional: words of the checkpoint FILE name, comma separated. '(auto from model)' uses the first
+#           phrase whose word is in the file name of the loaded model; empty = only when chosen by hand
+#
+# It goes at the start of the full prompt, and in the composition text (first steps) right after the framing
+# sentence. Your own phrases: ComfyUI/user/alchemica/phrases.txt, same format (a section with the same name
+# replaces the one here, an empty 'text =' hides it), or the '✎ phrases…' button on the ⚗ Prompt node.
+
+[casual photo]
+text = This is a casual, low-quality photo.
+
+[amateur smartphone photo]
+text = This is an amateur photo taken from a smartphone, casual photo.
+
+[professional photo]
+text = This is a professional photograph taken with a full-frame camera.

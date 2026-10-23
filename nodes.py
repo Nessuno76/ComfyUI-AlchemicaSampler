@@ -59,11 +59,25 @@ def _pick_profile(model, profilo):
     """(auto) = riconosce il checkpoint dall'impronta e usa il suo profilo."""
     if profilo == "(auto)":
         imp = taratura.fingerprint(model)
+        imp2 = taratura.fingerprint2(model)
         lora = taratura.lora_signature(model)
-        name = schedules.match_profile(imp, lora)
+        info = {}
+        name = schedules.match_profile(imp, lora, imp2, info)
         if name:
-            print(f"[AlchemicaSampler] automatic profile: '{name}' (fingerprint {imp})")
-            avviso = "" if imp.startswith("v") else " [architecture-only fingerprint: check it is the right profile]"
+            print(f"[AlchemicaSampler] automatic profile: '{name}' (fingerprint {imp2 or imp}, {info.get('kind')})")
+            avviso = ""
+            if info.get("kind") == "legacy":
+                avviso = (" [architecture-only fingerprint: check it is the right profile]" if not imp.startswith("v")
+                          else f" [legacy fingerprint shared by {info['legacy']} profiles: if this is the wrong one, pick "
+                               f"the right profile by hand once (it then learns this checkpoint) or re-run the Calibration]"
+                          if info.get("legacy", 0) > 1
+                          else " [old profile: re-run the Calibration to add the v2 fingerprint]")
+            if info.get("provvisorio"):
+                avviso += (f" [PROVISIONAL: only {info.get('campioni', 0)} sample(s), {schedules.MIN_CAMPIONI} needed for "
+                           f"a reliable profile"
+                           + (f"; the older profile '{info['alternativa']}' is reliable: pick it by hand once"
+                              if info.get("alternativa") else "") + "]")
+                print(f"[AlchemicaSampler] WARNING: profile '{name}' is provisional ({info.get('campioni', 0)} samples)")
             p_lora = (schedules.load_profile(name) or {}).get("lora", "")
             if lora and p_lora == lora:
                 avviso += " [calibrated with these LoRAs]"
@@ -78,7 +92,13 @@ def _pick_profile(model, profilo):
     if schedules.load_profile(profilo) is None:
         print(f"[AlchemicaSampler] profile '{profilo}' not found in {schedules.PROFILE_DIR}")
         return profilo, f"profile '{profilo}' NOT FOUND"
-    return profilo, f"profilo '{profilo}'"
+    nota = f"profile '{profilo}'"
+    if not (schedules.load_profile(profilo) or {}).get("impronta2"):
+        # an older profile picked by hand: if it belongs to this checkpoint's 1.0 group, teach it the v2 fingerprint
+        if schedules.stamp_profile(profilo, taratura.fingerprint(model), taratura.fingerprint2(model)):
+            nota += " [now recognised automatically for this checkpoint]"
+            print(f"[AlchemicaSampler] profile '{profilo}' learned this checkpoint's fingerprint v2")
+    return profilo, nota
 
 
 _OPT_IN = {"optional": {"opts": (OPTS, {"tooltip": "Chain from another Alchemica options node"})}}
@@ -345,6 +365,31 @@ class AlchemicaResolution:
 
 # =============================================================== taratura
 
+def nome_profilo_auto(model, latent):
+    """Profile name from what is calibrated: the checkpoint file (+ the LoRA stack), e.g. myFinetune_v6INT8.
+    ONE profile per model, valid at every resolution: Krea 2 uses a fixed shift (1.15) and the measured step density
+    barely moves with the size (a fine-tuned Krea 2, 6.3 MP vs 1.6 MP: 8-step schedules within 0.008 sigma, curves
+    correlated 0.988), so runs at different resolutions can be averaged in the same profile."""
+    import os
+    nome = ""
+    init = getattr(model, "cached_patcher_init", None)       # set by ComfyUI's loaders, kept by clone()
+    try:
+        arg = init[1][0] if init else ""
+        if isinstance(arg, (list, tuple)):
+            arg = arg[0] if arg else ""
+        if isinstance(arg, str) and arg:
+            nome = os.path.splitext(os.path.basename(arg))[0]
+    except Exception:
+        nome = ""
+    if not nome:
+        nome = "model_" + str(taratura.fingerprint2(model) or taratura.fingerprint(model) or "x")[:10]
+    out = nome
+    lora = taratura.lora_signature(model)
+    if lora:
+        out += "_" + lora
+    return "".join(ch for ch in out if ch.isalnum() or ch in "-_.")
+
+
 class AlchemicaTaratura:
     @classmethod
     def INPUT_TYPES(cls):
@@ -355,7 +400,9 @@ class AlchemicaTaratura:
             "seed": ("INT", {"default": 1001, "min": 0, "max": 0xFFFFFFFFFFFFFFFF, "control_after_generate": True}),
             "passi_densi": _i(40, 16, 120, "Steps of the measuring trajectory. 40 is enough, 60 is more precise"),
             "cfg": _f(1.0, 0.0, 10.0, 0.05, "As you will use it (Turbo: 1.0)"),
-            "profilo": ("STRING", {"default": "krea2_turbo_nvfp4", "tooltip": "File name inside profili/"}),
+            "profilo": ("STRING", {"default": "(auto)", "tooltip": "(auto) = named after the checkpoint file (plus "
+                                   "the LoRA stack if one is connected), e.g. myFinetune_v6INT8: one profile per "
+                                   "model, valid at every resolution. Or write a name (file name inside profili/)"}),
             "modalita": (["accumula", "sostituisci"], {"default": "accumula", "tooltip": "accumula (accumulate) = averages with the other prompts; re-running the same prompt UPDATES its sample instead of adding one. sostituisci (replace) = start from scratch"}),
             "sonda_eta": _f(0.5, 0.0, 1.0, 0.05, "Probe intensity ONLY for measuring eta/detail-boost tolerance (eta_sicuro/detail_sicuro) - not the eta you will generate with"),
             "measure_half_res": ("BOOLEAN", {"default": True, "tooltip": "Also measures at HALF resolution (+~30% time): "
@@ -371,9 +418,17 @@ class AlchemicaTaratura:
     CATEGORY = CAT
     DESCRIPTION = "Measures how the model builds the image and saves a profile for the alchemica_tarato scheduler."
 
+    @classmethod
+    def IS_CHANGED(cls, **kw):
+        # 2026-10-19: always run. With unchanged inputs (prompt line and seed on 'fixed') ComfyUI used to serve the
+        # cached result: 16 queued runs ended in seconds and the profile kept 1 sample (a fine-tune profile)
+        return float("nan")
+
     def run(self, model, positive, latent_image, seed, passi_densi, cfg, profilo, modalita, sonda_eta=0.5,
             measure_half_res=True, modello_riferimento=None):
-        name = "".join(ch for ch in profilo.strip() if ch.isalnum() or ch in "-_.") or "profilo"
+        auto = profilo.strip().lower() in ("", "(auto)", "auto")
+        name = nome_profilo_auto(model, latent_image) if auto else \
+            ("".join(ch for ch in profilo.strip() if ch.isalnum() or ch in "-_.") or "profilo")
         out, prof, rows, t = taratura.run_calibration(model, positive, latent_image, seed, passi_densi, cfg,
                                                       name, modalita, modello_riferimento, sonda_eta,
                                                       bool(measure_half_res))
@@ -396,14 +451,20 @@ class AlchemicaTaratura:
             series.append(("2nd-order density", sig, [v / m3 for v in d3], 1.0))
         if "quant" in prof:
             series.append(("NVFP4 error x5", sig, [5 * v for v in prof["quant"]], 1.0))
-        img = plot_curves(series, f"Calibration '{name}'  samples: {prof['campioni']}",
-                          [("tar 8", s8), ("tar 12", s12), ("duale8", sd)])
+        try:      # 2026-10-19: the explained chart (phases, every sample, where the steps go, in words)
+            from .alchemica.grafico_taratura import disegna
+            img = disegna(prof, name, taratura.recommendations, s8.tolist(),
+                          schedules.base_schedule(ms, "flux_shift", 8, c).tolist(), schedules.MIN_CAMPIONI)
+        except Exception as ex:
+            print(f"[AlchemicaTaratura] explained chart failed ({ex}): plain curves")
+            img = plot_curves(series, f"Calibration '{name}'  samples: {prof['campioni']}",
+                              [("tar 8", s8), ("tar 12", s12), ("duale8", sd)])
         k = prof["consigli"]
         d = prof["diagnostica"]
         f = lambda v: "n/a" if v is None else f"{v:.3f}"
         lines = [
-            f"PROFILE '{name}'  samples {prof['campioni']} (distinct prompts)  "
-            f"resolutions {', '.join(prof['risoluzioni'])}  ({t:.1f}s this run)  fingerprint {prof.get('impronta', '?')}",
+            f"PROFILE '{name}'{' (automatic name)' if auto else ''}  samples {prof['campioni']} (distinct prompts)  "
+            f"resolutions {', '.join(prof['risoluzioni'])}  ({t:.1f}s this run)  fingerprint {prof.get('impronta2') or prof.get('impronta', '?')}",
             f"composition locked: 95% at sigma {f(k['composizione_bloccata_95'])}, 98.5% at {f(k['composizione_bloccata_985'])}",
             f"detail structure (where): 10% {f(k['struttura_10'])}, 50% {f(k['struttura_50'])}, 90% {f(k['struttura_90'])}",
             f"sharpness (how much): 10% {f(k['nitidezza_10'])}, 50% {f(k['nitidezza_50'])}, 90% {f(k['nitidezza_90'])}  (plateau {k['plateau_energia']})",
@@ -423,7 +484,14 @@ class AlchemicaTaratura:
             "(es. ⚗ Alchemica Prompt in 'from list' con line in increment, coda di N esecuzioni)",
             f"GPU {d.get('gpu')}  cc {d.get('capability', 'n/a')}  torch {d['torch']}  CUDA {d['cuda']}",
             f"weights: {d.get('pesi')}",
-        ] + [f"WARNING: {w}" for w in d.get("avvisi", [])]
+        ] + [f"WARNING: {w}" for w in d.get("avvisi", [])] + [f"WARNING: {w}" for w in prof.get("avvisi_ultima", [])]
+        if schedules.affidabile(prof):
+            lines.insert(1, f"RELIABLE PROFILE ({prof['campioni']} samples): (auto) in the ⚗ samplers uses it for this "
+                            f"checkpoint. More runs keep refining it; nothing else to do")
+        if not schedules.affidabile(prof):
+            lines.insert(1, f"PROVISIONAL PROFILE: {prof['campioni']}/{schedules.MIN_CAMPIONI} samples. (auto) will "
+                            f"prefer a reliable profile of this checkpoint until this one reaches {schedules.MIN_CAMPIONI}. "
+                            f"Queue more runs with DIFFERENT prompts (Prompt 'from list', line on increment)")
         if passi_densi < 24:
             lines.append(f"WARNING: passi_densi={passi_densi} is low for a reliable sensitivity measurement (40-60 recommended); "
                         f"eta_sicuro/detail_sicuro may not have been measured or may be noisy.")
@@ -534,7 +602,7 @@ class AlchemicaKrea:
         with anteprima.metodo(preview_method):
             out, sig, report, plots = pipeline.run(model, positive, negative, latent_image, seed, cfg, denoise,
                                                    model2=modello_rifinitura)
-        title = f"AlchemicaKrea | {modo} | {'2 stadi' if due_stadi else 'stadio unico'}" + (f" | {nota}" if nota else "")
+        title = f"AlchemicaKrea | {modo} | {'two stages' if due_stadi else 'single stage'}" + (f" | {nota}" if nota else "")
         img = plot_sigmas(plots, title) if plots else torch.zeros(1, 64, 64, 3)
         text = "\n".join([title] + report)
         print("[AlchemicaKrea]\n" + text)
@@ -621,7 +689,7 @@ class AlchemicaLoraStack:
             try:
                 path = folder_paths.get_full_path_or_raise("loras", nome)
             except Exception as e:
-                print(f"[AlchemicaLoraStack] LoRA '{nome}' non trovata: {e}")
+                print(f"[AlchemicaLoraStack] LoRA '{nome}' not found: {e}")
                 mancanti.append(nome)
                 continue
             lora, meta = self._carica(path)

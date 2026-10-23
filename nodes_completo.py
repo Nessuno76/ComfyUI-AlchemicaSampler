@@ -109,7 +109,7 @@ class AlchemicaEnhancer:
         if tolti:
             rep.append("tolte perche' vietate: " + " | ".join(tolti))
         if not dett:
-            rep.append("ATTENZIONE: il modello non ha scritto il DETTAGLIO; testo grezzo sotto")
+            rep.append("WARNING: the model wrote no DETAIL; raw text below")
             rep.append(grezzo)
         return {"ui": {"text": [scena]}, "result": (scena, dett, neg, "\n".join(rep))}
 
@@ -208,7 +208,7 @@ def _handoff(model):
     """Sigma di passaggio (composizione bloccata) dal profilo tarato su questo modello."""
     try:
         from .alchemica import schedules, taratura
-        nome = schedules.match_profile(taratura.fingerprint(model))
+        nome = schedules.match_profile(taratura.fingerprint(model), None, taratura.fingerprint2(model))
         v = (schedules.load_profile(nome) or {}).get("consigli", {}).get("handoff_sigma") if nome else None
         if v:
             return float(v), f"profilo '{nome}'"

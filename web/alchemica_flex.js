@@ -21,6 +21,7 @@ function mostra(node, nome, si) {
     const nascosto = !si;
     if (!!w.hidden === nascosto && !w._alcTipo) return;
     w.hidden = nascosto;
+    (w.options ??= {}).hidden = nascosto;      // Nodes 2.0 (Vue) reads options.hidden (same object: keep its references)
     if (nascosto) {                                   // older frontends ignore 'hidden'
         if (w._alcTipo === undefined) { w._alcTipo = w.type; w._alcSize = w.computeSize; }
         w.computeSize = () => [0, -4];

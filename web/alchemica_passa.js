@@ -13,7 +13,8 @@ import { app } from "../../scripts/app.js";
 import { scriviTesto } from "./alchemica_testo.js";
 
 // nodes with pass-through connectors -> socket prefix (1.0 Italian node, 1.1 English node)
-const NODI = { AlchemicaLoraStack: "passa_", AlchemicaLoraLoader: "pass_", AlchemicaPromptStudio: "pass_" };
+const NODI = { AlchemicaLoraStack: "passa_", AlchemicaLoraLoader: "pass_", AlchemicaLoraStackPlus: "pass_",
+               AlchemicaPromptStudio: "pass_" };
 const MAX = 8;
 const LIBERO = "*";
 

@@ -105,7 +105,7 @@ class AlchemicaPrompt:
             rep.append("tal quale")
         else:
             if not idea.strip() and immagine is None:
-                raise ValueError("Alchemica Prompt: scrivi un'idea o collega un'immagine (modo 'genera da idea')")
+                raise ValueError("Alchemica Prompt: write an idea or connect an image ('generate from idea' mode)")
             img = immagine[:1] if immagine is not None else None
             sc, dett, neg, grezzo, tolti = testo.genera(clip, idea, stile, parole, creativita, seed, img,
                                                         pelle=pelle, istruzioni=istruzioni)
@@ -116,7 +116,7 @@ class AlchemicaPrompt:
             if tolti:
                 rep.append("tolte perche' vietate: " + " | ".join(tolti))
             if not dett:
-                rep.append("ATTENZIONE: il modello non ha scritto il DETTAGLIO; testo grezzo sotto")
+                rep.append("WARNING: the model wrote no DETAIL; raw text below")
                 rep.append(grezzo)
         rep += [f"SCENA ({len(sc.split())} parole): {sc}",
                f"DETTAGLIO ({len(dett.split())} parole): {dett}",

@@ -174,7 +174,7 @@ def descrivi_tarato(cfg):
 def alchemica_tarato(ms, steps, cfg):
     prof = load_profile(cfg.get("profilo", ""))
     if prof is None:
-        print("[AlchemicaSampler] profilo di taratura mancante: uso alchemica_duale")
+        print("[AlchemicaSampler] calibration profile missing: using alchemica_dual")
         return alchemica_duale(ms, steps, cfg)
     s = torch.tensor(prof["sigma"], dtype=torch.float64)
     key, esp, _ = _curva_tarata(prof, cfg)
@@ -219,24 +219,100 @@ def profile_names():
 _CACHE = {}
 
 
-def match_profile(impronta, lora=None):
+def profile_matches(p, impronta, impronta2=""):
+    """0 = exact (fingerprint v2), 1 = legacy (1.0 fingerprint only, the profile has no v2), None = not this model.
+    A profile that carries a v2 fingerprint is matched ONLY on it: the 1.0 fingerprint can be shared by a base model
+    and its fine-tunes (2026-10-13: Krea 2 Turbo NVFP4 and a fine-tune of it gave the same 1.0 id)."""
+    if not p:
+        return None
+    if impronta2 and p.get("impronta2"):
+        return 0 if p["impronta2"] == impronta2 else None
+    if impronta and impronta != "sconosciuta" and p.get("impronta") == impronta:
+        return 1
+    return None
+
+
+def match_profile(impronta, lora=None, impronta2="", info=None):
     """Nome del profilo tarato su QUESTO modello, o None. Con lora (firma dello stack di LoRA, '' = nessuna):
     prima un profilo tarato con le STESSE LoRA, altrimenti uno qualsiasi dello stesso checkpoint
-    (i profili tarati prima del 2026-10-10 non hanno la firma e valgono come 'senza LoRA')."""
-    if not impronta or impronta == "sconosciuta":
-        return None
-    trovati = [n for n in profile_names() if (load_profile(n) or {}).get("impronta") == impronta]
+    (i profili tarati prima del 2026-10-10 non hanno la firma e valgono come 'senza LoRA').
+    impronta2 = fingerprint v2: profiles that match on it win over the ones matched by the 1.0 fingerprint only.
+    info (dict, optional) receives 'kind' ('exact' / 'legacy') and 'legacy' (profiles sharing the 1.0 id)."""
+    trovati = []
+    for n in profile_names():
+        k = profile_matches(load_profile(n), impronta, impronta2)
+        if k is not None:
+            trovati.append((k, n))
     if not trovati:
         return None
-    # profiles with the calibration-v2 curves first (more samples first): a new calibration wins over the old ones
-    # of the same checkpoint. Among old profiles the order stays alphabetical, as in 1.0.
+    best = min(k for k, _ in trovati)
+    trovati = [n for k, n in trovati if k == best]
+    if info is not None:
+        info["kind"] = "exact" if best == 0 else "legacy"
+        info["legacy"] = len(trovati) if best == 1 else 0
+    # 2026-10-19: RELIABLE profiles first (>= MIN_CAMPIONI samples), then calibration-v2 curves (more samples first).
+    # Before, a profile with 1 sample could beat one with 15 (v2 curves, same LoRA stack won): e.g. a fine-tune profile,
+    # 1 sample because the ComfyUI cache swallowed 15 of 16 queued runs, with its sharpness window far too low.
     v2 = lambda n: -int((load_profile(n) or {}).get("campioni_v2", 0) or 0)
-    trovati.sort(key=v2)
+    trovati.sort(key=lambda n: (0 if affidabile(load_profile(n)) else 1, v2(n), -campioni(load_profile(n))))
+    scelto = None
     if lora is not None:
-        for n in trovati:
-            if (load_profile(n) or {}).get("lora", "") == lora:
-                return n
-    return trovati[0]
+        for n in trovati:                                   # same LoRA stack, but only among reliable profiles
+            p = load_profile(n) or {}
+            if affidabile(p) and p.get("lora", "") == lora:
+                scelto = n
+                break
+    if scelto is None and affidabile(load_profile(trovati[0])):
+        scelto = trovati[0]
+    if scelto is None and lora is not None:                 # only provisional profiles: same LoRA stack first
+        scelto = next((n for n in trovati if (load_profile(n) or {}).get("lora", "") == lora), None)
+    scelto = scelto or trovati[0]
+    if info is not None:
+        info["campioni"] = campioni(load_profile(scelto))
+        info["provvisorio"] = not affidabile(load_profile(scelto))
+        if info["provvisorio"] and best == 0:              # a reliable older profile of the same 1.0 group?
+            alt = [n for n in profile_names() if profile_matches(load_profile(n), impronta, "") == 1
+                   and not (load_profile(n) or {}).get("impronta2") and affidabile(load_profile(n))]
+            info["alternativa"] = max(alt, key=lambda n: campioni(load_profile(n))) if alt else ""
+    return scelto
+
+
+# A calibration profile is RELIABLE from this many samples (distinct prompt/seed measurements). Below it, the curves
+# come from too few images: the phases (composition, detail window, restart) can be off by a lot (a fine-tune profile,
+# 1 sample: detail window 0.41 -> 0.12 against 0.69 -> 0.18 measured on 15 samples).
+MIN_CAMPIONI = 8
+
+
+def campioni(p):
+    try:
+        return int((p or {}).get("campioni", 0) or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def affidabile(p):
+    return campioni(p) >= MIN_CAMPIONI
+
+
+def stamp_profile(name, impronta, impronta2):
+    """Adds the v2 fingerprint to an older profile the user picked BY HAND, so that (auto) recognises this checkpoint
+    from now on. Only when the profile has no v2 fingerprint yet and its 1.0 fingerprint is this model's (a hand pick
+    inside the group of models the 1.0 id could not tell apart). True if the file was updated."""
+    if not impronta2:
+        return False
+    p = load_profile(name)
+    if not p or p.get("impronta2") or p.get("impronta") != impronta:
+        return False
+    path = os.path.join(PROFILE_DIR, name + ".json")
+    p = dict(p)
+    p["impronta2"] = impronta2
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(p, f, indent=1)
+    except OSError:
+        return False
+    _CACHE.pop(name, None)
+    return True
 
 
 def load_profile(name):
@@ -410,3 +486,34 @@ def two_stage_schedules(ms, cfg):
     name2 = name if name2 in ("same", "", None) else name2
     s2 = with_restart(ms, name2, cfg, tail(ms, name2, cfg, h, int(cfg["stage2_steps"])))
     return s1, s2
+
+# ---------------------------------------------------------------- sigma dose (2026-10-23)
+# One knob for ANY scheduler: the steps slide along the scheduler's own curve (endpoints and shape kept).
+# dose 0 = the scheduler as it is; < 0 = more steps at high sigma (composition); > 0 = more at low sigma (detail).
+ZONE = ((0.7, "composition"), (0.3, "forms"), (0.0, "detail"))
+
+
+def dose_exponent(dose):
+    return 2.0 ** (-max(-1.0, min(1.0, float(dose))))
+
+
+def dosed_schedule(ms, name, cfg, steps, dose=0.0, denoise=1.0):
+    steps = max(1, int(steps))
+    if denoise <= 0.0:
+        return torch.zeros(0)
+    n = steps if denoise >= 0.9999 else int(steps / denoise)
+    if abs(float(dose)) < 1e-6:
+        s = base_schedule(ms, name, n, cfg)
+    else:
+        u, c = _curve(ms, name, cfg)
+        s = _interp(u, c, torch.linspace(0.0, 1.0, n + 1) ** dose_exponent(dose))
+        s[0], s[-1] = c[0], 0.0
+    return s if n == steps else s[-(steps + 1):]
+
+
+def zone_steps(sigmas):
+    """Steps per zone, by the sigma each step starts from: {"composition": n, "forms": n, "detail": n}."""
+    out = {z: 0 for _, z in ZONE}
+    for s in [float(v) for v in sigmas[:-1]]:
+        out[next(z for lo, z in ZONE if s >= lo)] += 1
+    return out

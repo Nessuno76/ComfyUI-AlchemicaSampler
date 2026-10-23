@@ -30,14 +30,14 @@ five nodes in four coloured groups, with the model, the text encoder and the VAE
 instead of being wired to every node:
 
 ```
-Load Krea 2  →  LoRA Stack  →  Prompt  →  KSampler Flex  →  Save Image
+Load Krea 2  →  LoRA Stack+  →  Prompt  →  KSampler Flex  →  Save Image
 ```
 
 | Step | Node | What it saves you |
 |---|---|---|
 | 1 | **⚗ Load Krea 2** | model + text encoder + VAE in one node, the encoder always loaded with the right type |
-| 2 | **⚗ LoRA Stack** | six LoRAs in one node, a readable list of what is active and what was not found |
-| 3 | **⚗ Prompt** | writes the prompt with Krea 2's own encoder (or Ollama, or your own text), encodes it, applies NAG, sets the latent size |
+| 2 | **⚗ LoRA Stack+** | as many LoRAs as you need (➕), the real strength on each row, a picker with previews, trigger words added to the prompt, a warning when a LoRA is not for your model |
+| 3 | **⚗ Prompt** | writes the prompt with Krea 2's own encoder (or Ollama, or your own text), encodes it, applies NAG, sets the latent size; **framing presets** (full body, 3/4, chest up, close-up, fisheye, panoramic, angles, views) hold the shot you ask for |
 | 4 | **⚗ KSampler Flex** | any ComfyUI sampler and scheduler, or the calibrated ones; two stages; DeGrid; a report of what it did |
 | 5 | **⚗ Save Image** | pick drive and folder in a browser, name the file after the workflow |
 
@@ -50,8 +50,8 @@ More than twenty nodes and thirteen example workflows, so you do not have to bol
 
 | Area | Nodes |
 |---|---|
-| **Build** | Load Krea 2 · LoRA Stack (6 slots + pass-through) · Resolution |
-| **Prompt** | Prompt (idea / improve / as written / list / string / example, wildcards, NAG) · Text Encode (scene / detail / negative) · Two-Phase Text Encode · Attention Guidance (NAG / PAG / SEG) |
+| **Build** | Load Krea 2 · LoRA Stack+ (slots on demand, previews, pass-through) · Resolution |
+| **Prompt** | Prompt (idea / improve / as written / list / string / example, wildcards, NAG, framing presets) · Text Encode (scene / detail / negative) · Two-Phase Text Encode · Attention Guidance (NAG / PAG / SEG) |
 | **Sample** | KSampler Flex · KSampler · KSampler Pro (two-phase prompt, composition previews) · Sampler (advanced) · Scheduler and Sampler Select for `SamplerCustom` |
 | **Measure** | Calibration — measures your checkpoint and writes a profile; `(auto)` finds it afterwards |
 | **Finish** | DeGrid (removes the VAE's 2-pixel grid) · Black and White · Save Image |

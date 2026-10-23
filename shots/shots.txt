@@ -1,0 +1,217 @@
+# ⚗ AlchemicaSampler — framing presets (shot size, camera angle, subject view)
+#
+# One preset per [section]. The name in brackets is what the ⚗ Prompt menus show.
+#   group      shot | angle | view
+#   text       the framing sentence that opens the scene (English works best)
+#   aspect     shot only: frame shape used in 'strict' mode (1:1 2:3 3:2 3:4 4:3 4:5 5:4 9:16 16:9 21:9)
+#   megapixels shot only: size used in 'strict' mode
+#   negative   framing negatives added in 'strict' mode (comma separated); for a view, the opposite views
+#   anchor     shot only: sentence added when the scene never mentions legs or feet (default: the whole
+#              body is visible from head to toe); a smaller figure for the wide shots
+#   hide       shot only: 'legs' or 'feet' = what the frame cuts away; descriptions of it are removed
+#              from the scene (a reference photo or the LLM often describe the whole outfit)
+#
+# To add or change presets WITHOUT editing this file, write the same format in
+#   ComfyUI/user/alchemica/shots.txt
+# (a section with the same name replaces the one here). Restart ComfyUI or press R to refresh the menus.
+# A thumbnail for the gallery is shots/thumbs/<name>.jpg (or user/alchemica/shot_thumbs/<name>.jpg),
+# where <name> is the section name with every character that is not a letter or digit turned into '_'.
+
+[extreme close-up · primissimo piano]
+group = shot
+hide = legs
+text = extreme close-up of the face shot with a long telephoto lens, only the eyes, nose and mouth fill the frame, the frame cuts across the forehead and the chin, no lens distortion, 135mm
+aspect = 4:5
+megapixels = 2.5
+negative = wide angle, fisheye, distortion, shoulders, torso, body, full body, second person, small figure in the background
+
+[close-up · primo piano]
+group = shot
+hide = legs
+text = close-up portrait, the whole head from the top of the hair to the chin fills the frame with the eyes in the upper third, the frame cuts at the neck, nothing below the neck is visible, 85mm telephoto
+aspect = 4:5
+megapixels = 2.5
+negative = cropped eyes, cut-off forehead, torso, waist, legs, jeans, shoes, full body, wide shot
+
+[head and shoulders · mezzo primo piano]
+group = shot
+hide = legs
+text = head-and-shoulders portrait, only the head and the shoulders are in the frame, the frame cuts at the upper chest, nothing below the chest is visible, 85mm
+aspect = 4:5
+megapixels = 2.5
+negative = cropped head, waist, hips, legs, jeans, shoes, full body, wide shot
+
+[chest up · mezzo busto]
+group = shot
+hide = legs
+text = medium close-up bust portrait, the head, the shoulders and the chest down to just below the bust line, both upper arms visible, the frame cuts across the ribs, 70mm
+aspect = 4:5
+megapixels = 3.0
+negative = cropped head, extreme close-up, waist, hips, legs, full body
+
+[waist up · piano medio]
+group = shot
+hide = legs
+text = medium shot, the whole head with a little space above the hair, down to the waist, the frame cuts at the waist, the thighs and legs are out of the frame, 50mm
+aspect = 2:3
+megapixels = 3.0
+negative = cropped head, cut-off eyes, cut-off forehead, thighs, knees, legs, feet, full body, three-quarter length
+
+[3/4 length · piano americano]
+group = shot
+hide = feet
+text = three-quarter length shot, the whole head down to mid-thigh, the frame cuts at mid-thigh, knees and feet are out of the frame, 50mm
+aspect = 2:3
+megapixels = 3.5
+negative = cropped head, knees, feet, shoes, full body, close-up, waist-up portrait, head and shoulders
+
+[full body · figura intera]
+group = shot
+text = full-body shot, the whole figure from head to toe with both feet visible, 35mm lens
+aspect = 2:3
+megapixels = 4.0
+negative = cropped feet, cut-off legs, cropped head, close-up, out of frame, portrait, medium shot, waist-up portrait, half body, head and shoulders
+
+[full body in the scene · figura ambientata]
+group = shot
+anchor = the whole figure, head to toe, takes about one third of the frame height, with plenty of the surroundings around it
+text = full-body shot of the subject within the environment, the figure about one third of the frame height, 28mm lens
+aspect = 3:2
+megapixels = 4.0
+negative = close-up, cropped feet, cropped head, portrait, medium shot, waist-up portrait, half body, head and shoulders
+
+[wide shot · campo lungo]
+group = shot
+anchor = a small whole figure, head to toe, surrounded by the environment
+text = wide shot, a small figure in a large environment, 24mm lens
+aspect = 3:2
+megapixels = 4.0
+negative = close-up, portrait, cropped, portrait, medium shot, waist-up portrait, half body, head and shoulders
+
+[establishing shot · campo lunghissimo]
+group = shot
+anchor = a tiny whole figure, head to toe, far away in the landscape
+text = extreme wide establishing shot, a tiny figure in a vast landscape, 16mm lens
+aspect = 16:9
+megapixels = 4.0
+negative = close-up, portrait, portrait, medium shot, waist-up portrait, half body, head and shoulders
+
+[fisheye · occhio di pesce]
+group = shot
+text = fisheye lens photograph, 180-degree view with strong barrel distortion and curved lines, exaggerated perspective close to the lens
+aspect = 1:1
+megapixels = 3.0
+negative = rectilinear lens, flat perspective
+
+[panoramic · panoramica]
+group = shot
+text = panoramic photograph, ultra-wide horizontal view, only one person standing alone in the center of the frame, empty space on both sides
+aspect = 21:9
+megapixels = 4.0
+negative = close-up, vertical framing, cropped, duplicated person, repeated figure, several copies of the same person, crowd
+
+[anamorphic cinema · cinemascope]
+group = shot
+text = anamorphic widescreen film still, 2.39:1, horizontal lens flares, oval bokeh, a single person in the scene
+aspect = 21:9
+megapixels = 3.5
+negative = vertical framing, duplicated person, repeated figure, several copies of the same person, crowd
+
+[macro · macro]
+group = shot
+hide = legs
+text = macro photograph, one tiny detail fills the entire frame, extreme magnification, very shallow depth of field, no people in the background
+aspect = 1:1
+megapixels = 2.5
+negative = full body, wide shot, second person, people in the background, small figure in the background, distant subject
+
+[over the shoulder · sopra la spalla]
+group = shot
+text = over-the-shoulder shot, the shoulder and the back of the head of a person in the foreground, out of focus, the subject facing the camera behind them
+aspect = 3:2
+megapixels = 3.0
+negative = 
+
+[point of view · soggettiva]
+group = shot
+text = first-person point-of-view shot, the viewer's own hands visible at the bottom of the frame
+aspect = 3:2
+megapixels = 3.0
+negative = third-person view
+
+[selfie · selfie]
+group = shot
+text = selfie taken at arm's length, slight wide-angle distortion, the subject's arm reaching toward the camera
+aspect = 9:16
+megapixels = 2.5
+negative = 
+
+[tilt-shift · effetto miniatura]
+group = shot
+text = tilt-shift photograph, miniature effect, a narrow band of sharp focus, the scene seen from above
+aspect = 3:2
+megapixels = 3.0
+negative = 
+
+[aerial drone · drone]
+group = shot
+text = aerial drone photograph from high above, looking down at the scene, the subject small seen from the top
+aspect = 16:9
+megapixels = 4.0
+negative = eye level, close-up, portrait, medium shot
+
+[silhouette · controluce]
+group = shot
+text = silhouette against a bright background, a single figure rendered as a solid dark shape with a clean outline, backlit
+aspect = 3:2
+megapixels = 3.0
+negative = second person, front lighting, flat lighting, visible face details
+
+[eye level · altezza occhi]
+group = angle
+text = camera at eye level
+
+[high angle · dall'alto]
+group = angle
+text = high-angle shot, the camera above looking down
+
+[low angle · dal basso]
+group = angle
+text = low-angle shot, the camera below looking up
+
+[bird's-eye · a piombo]
+group = angle
+text = bird's-eye view shot from directly overhead, the camera looks straight down at the top of the head and shoulders, the paving fills the whole background
+
+[worm's-eye · rasoterra]
+group = angle
+text = worm's-eye view, the camera on the ground looking up
+
+[dutch angle · inclinata]
+group = angle
+text = Dutch angle, the camera tilted so the horizon runs diagonally
+
+[front · frontale]
+group = view
+text = the subject facing the camera, chest and face turned toward the viewer
+negative = seen from behind, back view, rear view, back to the camera, turned away, looking over the shoulder
+
+[three-quarter · tre quarti]
+group = view
+text = the subject turned three-quarters to the camera
+negative = seen from behind, back view, rear view, back to the camera
+
+[profile · profilo]
+group = view
+text = the subject in profile, side view
+negative = facing the camera, front view, back view
+
+[from behind · di spalle]
+group = view
+text = the subject seen from behind
+negative = facing the camera, front view, face toward the viewer
+
+[looking back · si volta]
+group = view
+text = the subject seen from behind, looking back over the shoulder at the camera
+negative = front view, chest toward the camera

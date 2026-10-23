@@ -36,6 +36,7 @@ import json
 import math
 import os
 import time
+import weakref
 
 import torch
 import torch.nn.functional as F
@@ -408,6 +409,67 @@ def fingerprint(model):
     return ("v" if esatta else "arch") + h.hexdigest()[:16]
 
 
+_FP2_CACHE = weakref.WeakKeyDictionary()
+
+
+def _bytes_sample(t, windows=16, width=32):
+    """A few raw bytes spread over the whole tensor (no dequantisation, no full copy)."""
+    if not t.is_contiguous():
+        t = t.contiguous()
+    b = t.detach().reshape(-1).view(torch.uint8)
+    n = b.numel()
+    if n <= windows * width:
+        return b.cpu().numpy().tobytes()
+    offs = [(n - width) * i // (windows - 1) for i in range(windows)]
+    return torch.cat([b[o:o + width] for o in offs]).cpu().numpy().tobytes()
+
+
+def fingerprint2(model):
+    """Checkpoint fingerprint v2 (2026-10-13): the raw bytes of EVERY weight of the diffusion model, sampled in 16
+    places each. For quantised weights (NVFP4, FP8, INT8) the packed data and the block scales are read as they
+    are: two fine-tunes of the same base differ exactly there, while norms, modulation and embedders are often
+    identical (the 1.0 fingerprint read 8 of those and gave Krea 2 Turbo NVFP4 and a fine-tune of it the same id).
+    Weights replaced by a LoRA patch are read from ComfyUI's backup, so LoRAs do not change it.
+    'w' + 16 hex characters; '' when the weights cannot be read."""
+    import hashlib
+    try:
+        dm = model.get_model_object("diffusion_model")
+    except Exception:
+        return ""
+    try:
+        if dm in _FP2_CACHE:
+            return _FP2_CACHE[dm]
+    except TypeError:
+        pass
+    backup = getattr(model, "backup", None) or {}
+    h = hashlib.sha1()
+    try:
+        for name, p in sorted(dm.named_parameters(), key=lambda x: x[0]):
+            bk = backup.get("diffusion_model." + name)
+            w = bk.weight if bk is not None else p
+            h.update(name.encode())
+            q = getattr(w, "_qdata", None)
+            if q is not None:                                   # quantised: packed data + scales
+                params = getattr(w, "_params", None)
+                h.update(f"q{tuple(getattr(params, 'orig_shape', ()) or ())}".encode())
+                h.update(_bytes_sample(q))
+                for attr in ("block_scale", "scale"):
+                    s = getattr(params, attr, None)
+                    if torch.is_tensor(s):
+                        h.update(_bytes_sample(s))
+            else:
+                h.update(f"{tuple(w.shape)}{w.dtype}".encode())
+                h.update(_bytes_sample(w.data if hasattr(w, "data") else w))
+    except Exception:
+        return ""
+    fp = "w" + h.hexdigest()[:16]
+    try:
+        _FP2_CACHE[dm] = fp
+    except TypeError:
+        pass
+    return fp
+
+
 def diagnostics(model):
     info = {"torch": torch.__version__, "cuda": str(torch.version.cuda)}
     try:
@@ -497,6 +559,30 @@ def run_calibration(model, positive, latent_dict, seed, dense_steps, cfg_scale,
     except TypeError:
         latent = comfy.sample.fix_empty_latent_channels(model, latent)
     sig = schedules.base_schedule(ms, "flux_shift", int(dense_steps), {})
+
+    # 2026-10-19: the profile is read BEFORE measuring, to know whether this prompt+seed+size was already measured.
+    # Re-running the same sample used to UPDATE it: 16 queued runs with a fixed prompt line and a fixed seed gave a
+    # profile of 1 sample (a fine-tune profile). Now a repeated sample in 'accumulate' mode is measured with a new seed,
+    # so every run adds a real sample, and the report says that the prompt was repeated.
+    os.makedirs(schedules.PROFILE_DIR, exist_ok=True)
+    path = os.path.join(schedules.PROFILE_DIR, profile_name + ".json")
+    prof = {}
+    if mode == "accumula" and os.path.isfile(path):
+        with open(path, "r", encoding="utf-8") as f:
+            prof = json.load(f)
+    misure = prof.get("misure") or {}
+    avvisi_run = []
+    seed_in = int(seed)
+    sid = sample_id(positive, seed, latent.shape)
+    if mode == "accumula" and sid in misure:
+        k = 1
+        while sid in misure and k < 1000:
+            seed = (seed_in + 7919 * k) & 0xFFFFFFFFFFFFFFFF
+            sid = sample_id(positive, seed, latent.shape)
+            k += 1
+        avvisi_run.append(f"same prompt + seed + size already in the profile: measured with seed {seed} instead of "
+                          f"{seed_in} to add a NEW sample. Different prompts are better: Prompt 'line' on increment")
+
     t0 = time.perf_counter()
     store, noise, samples = _traiettoria(model, positive, cfg_scale, latent, seed, sig)
     t_main = time.perf_counter() - t0
@@ -547,18 +633,12 @@ def run_calibration(model, positive, latent_dict, seed, dense_steps, cfg_scale,
         new["quant"] = _on_grid([r["s"] for r in rows], [r["quant"] for r in rows]).tolist()
         new["quant_hf"] = _on_grid([r["s"] for r in rows], [r["quant_hf"] for r in rows]).tolist()
 
-    os.makedirs(schedules.PROFILE_DIR, exist_ok=True)
-    path = os.path.join(schedules.PROFILE_DIR, profile_name + ".json")
-    prof = {}
-    if mode == "accumula" and os.path.isfile(path):
-        with open(path, "r", encoding="utf-8") as f:
-            prof = json.load(f)
-    misure = prof.get("misure") or {}
     if not misure and prof.get("costo") and len(prof.get("sigma", [])) == GRID.numel():
         misure = {"precedente": {k: v for k, v in prof.items() if k in
                                  ("costo", "comp", "dett", "energia", "quant", "quant_hf")}}
-    sid = sample_id(positive, seed, latent.shape)
     misure[sid] = {k: v for k, v in new.items() if k != "sigma"}
+    misure[sid]["info"] = {"seed": int(seed), "ris": f"{latent.shape[-1] * 8}x{latent.shape[-2] * 8}",
+                           "secondi": round(time.perf_counter() - t0, 1), "quando": time.strftime("%Y-%m-%d %H:%M")}
     prof["sigma"] = GRID.tolist()
     prof["misure"] = misure
     prof = merge_measures(prof, misure)
@@ -574,12 +654,15 @@ def run_calibration(model, positive, latent_dict, seed, dense_steps, cfg_scale,
     prof["sensibilita"] = sens
     prof["consigli"] = recommendations(prof, sens)
     prof["impronta"] = fingerprint(model)
+    prof["impronta2"] = fingerprint2(model)
     prof["lora"] = lora_signature(model)
     if bassa:
         prof.setdefault("risoluzioni_bassa", [])
         if bassa["ris"] not in prof["risoluzioni_bassa"]:
             prof["risoluzioni_bassa"].append(bassa["ris"])
     prof["diagnostica"] = diagnostics(model)
+    prof["affidabile"] = schedules.affidabile(prof)
+    prof["avvisi_ultima"] = avvisi_run
     with open(path, "w", encoding="utf-8") as f:
         json.dump(prof, f, indent=1)
 

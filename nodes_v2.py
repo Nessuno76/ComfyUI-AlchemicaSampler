@@ -186,7 +186,8 @@ SOCKETS_FIRST = {"AlchemicaKSampler": ["negative", "vae"]}
 
 
 # 1.1 nodes replaced by a newer one: hidden too (saved workflows keep working). old id -> replacement id
-SUPERSEDED = {"AlchemicaPromptAllInOne": "AlchemicaPromptStudio", "AlchemicaSaveImage": "AlchemicaSaveImagePath"}
+SUPERSEDED = {"AlchemicaPromptAllInOne": "AlchemicaPromptStudio", "AlchemicaSaveImage": "AlchemicaSaveImagePath",
+              "AlchemicaLoraLoader": "AlchemicaLoraStackPlus"}
 
 
 # ---------------------------------------------------------------- machinery

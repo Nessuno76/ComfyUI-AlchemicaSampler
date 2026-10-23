@@ -298,18 +298,20 @@ def post_cfg_perturbata(scala, sigma_hi, sigma_lo):
 
 def applica(model, negativo=None, nag_scala=0.0, nag_tau=2.5, nag_alpha=0.25, nag_blocchi="tutti",
             pert_modo="spenta", pert_scala=0.0, pert_blocchi="8-19", seg_sigma=10.0,
-            sigma_hi=1.0, sigma_lo=0.0, pert_sigma_hi=1.0, pert_sigma_lo=0.0):
+            sigma_hi=1.0, sigma_lo=0.0, pert_sigma_hi=1.0, pert_sigma_lo=0.0, chiave="alchemica_nag"):
+    # chiave: a second NAG with its own window can sit next to the first one (different key, disjoint sigma windows:
+    # the one outside its window just calls the next)
     m = model.clone()
     note = []
     if negativo is not None and nag_scala > 0:
         cn = negativo[0][0]
-        m.add_wrapper_with_key(comfy.patcher_extension.WrappersMP.DIFFUSION_MODEL, "alchemica_nag",
+        m.add_wrapper_with_key(comfy.patcher_extension.WrappersMP.DIFFUSION_MODEL, chiave,
                                nag_wrapper(cn, float(nag_scala), float(nag_tau), float(nag_alpha),
                                            float(sigma_hi), float(sigma_lo), parse_blocchi(nag_blocchi)))
         note.append(f"NAG scala {nag_scala} tau {nag_tau} alpha {nag_alpha} sigma {sigma_hi}->{sigma_lo} "
                     f"({len(parse_blocchi(nag_blocchi))} blocchi, {cn.shape[1]} token negativi)")
     elif nag_scala > 0:
-        note.append("NAG richiesto ma nessun negativo collegato: spento")
+        note.append("NAG requested but no negative connected: off")
     if pert_modo in ("SEG", "PAG") and pert_scala != 0:
         b = parse_blocchi(pert_blocchi)
         p1, p2 = patch_perturbazione(pert_modo, b, float(seg_sigma))

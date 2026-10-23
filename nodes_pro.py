@@ -116,9 +116,9 @@ class AlchemicaKreaPro:
         title = f"AlchemicaKrea Pro | {modo} | {tag}" + (f" | {nota}" if nota else "")
         extra = []
         if n_prev == 0 and int(scelta):
-            extra.append(f"scelta {scelta}: seed {seed} + {scelta} = {seed_eff}")
+            extra.append(f"pick {scelta}: seed {seed} + {scelta} = {seed_eff}")
         if int(variante_rifinitura):
-            extra.append(f"variante di rifinitura {variante_rifinitura}: seed del secondo stadio = {seed_eff + 1 + int(variante_rifinitura)}")
+            extra.append(f"refinement variant {variante_rifinitura}: stage-2 seed = {seed_eff + 1 + int(variante_rifinitura)}")
         img = plot_sigmas(plots, title) if plots else torch.zeros(1, 64, 64, 3)
         text = "\n".join([title] + extra + report)
         print("[AlchemicaKreaPro]\n" + text)

@@ -1,0 +1,169 @@
+# ⚗ AlchemicaSampler — look presets: lighting, atmosphere, background (all optional)
+#
+# Same format as shots.txt: one preset per [section], the name in brackets is what the ⚗ Prompt menus show.
+#   group      light | atmosphere | background
+#   text       the sentence added to the scene (English works best)
+#   negative   optional: negatives added to the NAG (comma separated)
+#
+# Your own presets: ComfyUI/user/alchemica/looks.txt (same name = replaces). Thumbnails: shots/thumbs/<name>.jpg,
+# where <name> is the section name with every character that is not a letter or digit turned into '_'.
+
+# ---------------------------------------------------------------- lighting
+
+[soft window light · luce di finestra]
+group = light
+text = soft natural window light from one side, gentle shadows
+
+[golden hour · ora d'oro]
+group = light
+text = warm golden hour sunlight, low sun, long soft shadows, glowing rim light on the hair
+
+[blue hour · ora blu]
+group = light
+text = blue hour twilight, cool ambient light, warm practical lights glowing in the scene
+
+[overcast · cielo coperto]
+group = light
+text = soft even overcast daylight, no hard shadows
+
+[harsh midday sun · sole di mezzogiorno]
+group = light
+text = harsh midday sun from above, hard shadows, high contrast
+
+[studio softbox · studio morbido]
+group = light
+text = studio portrait lighting with a large softbox, soft key light and gentle fill
+
+[Rembrandt · Rembrandt]
+group = light
+text = Rembrandt lighting, a single key light at 45 degrees, a small triangle of light on the shadow-side cheek
+
+[butterfly beauty · luce beauty]
+group = light
+text = butterfly beauty lighting from above and in front, a small shadow under the nose, luminous skin
+
+[backlight rim · controluce di contorno]
+group = light
+text = strong backlight, bright rim light outlining the subject, glowing edges
+
+[low key · low key]
+group = light
+text = low-key lighting, deep shadows, a single pool of light on the subject
+negative = flat lighting, bright background
+
+[high key · high key]
+group = light
+text = high-key lighting, bright and airy, almost no shadows
+negative = dark shadows, gloomy
+
+[neon · neon]
+group = light
+text = colourful neon light, magenta and cyan reflections on skin and surfaces
+
+[candlelight · lume di candela]
+group = light
+text = warm flickering candlelight, soft orange glow, dark surroundings
+
+# ---------------------------------------------------------------- atmosphere
+
+[fog · nebbia]
+group = atmosphere
+text = light fog in the air, soft depth haze, muted distant shapes
+
+[rain · pioggia]
+group = atmosphere
+text = rain falling, wet reflective surfaces, droplets in the air
+
+[snow · neve]
+group = atmosphere
+text = gently falling snow, cold crisp air
+
+[dust in the light · pulviscolo]
+group = atmosphere
+text = dust particles floating in visible beams of light
+
+[smoke haze · fumo]
+group = atmosphere
+text = thin smoke haze drifting through the scene, volumetric light
+
+[warm and cozy · caldo e accogliente]
+group = atmosphere
+text = warm cozy atmosphere, inviting and calm
+
+[cinematic moody · cinematografico cupo]
+group = atmosphere
+text = moody cinematic atmosphere, rich contrast, film colour grading
+
+[dreamy glow · sogno]
+group = atmosphere
+text = dreamy soft glow, gentle bloom on the highlights, pastel tones
+
+[vintage film · pellicola vintage]
+group = atmosphere
+text = vintage analog film look, fine grain, slightly faded warm colours
+
+[cold and clinical · freddo e clinico]
+group = atmosphere
+text = cold clinical atmosphere, cool white-blue tones, sterile and quiet
+
+# ---------------------------------------------------------------- background
+
+[white studio backdrop · fondale bianco]
+group = background
+text = plain seamless white studio backdrop
+negative = scenery, buildings, furniture, outdoor background
+
+[grey studio backdrop · fondale grigio]
+group = background
+text = plain seamless mid-grey studio backdrop
+negative = scenery, buildings, furniture, outdoor background
+
+[black backdrop · fondale nero]
+group = background
+text = plain black backdrop, the subject isolated in darkness
+negative = scenery, buildings, furniture, bright background
+
+[coloured paper backdrop · fondale colorato]
+group = background
+text = plain coloured paper backdrop in a soft warm tone
+negative = scenery, buildings, furniture
+
+[beach · spiaggia]
+group = background
+text = a sandy beach with the sea and the horizon behind
+
+[city street · strada di città]
+group = background
+text = a city street with shopfronts and passers-by softly out of focus behind
+
+[night city bokeh · città di notte]
+group = background
+text = a city at night behind, out-of-focus street lights forming round bokeh
+
+[forest · bosco]
+group = background
+text = a green forest behind, tree trunks and foliage softly out of focus
+
+[mountains · montagna]
+group = background
+text = mountains and an open sky behind
+
+[garden · giardino]
+group = background
+text = a flowering garden behind, soft greenery
+
+[café · bar]
+group = background
+text = a cosy café interior behind, warm lamps and wooden tables out of focus
+
+[living room · soggiorno]
+group = background
+text = a warm modern living room behind, a sofa and plants out of focus
+
+[office · ufficio]
+group = background
+text = a bright modern office behind, desks and glass walls out of focus
+
+[desert · deserto]
+group = background
+text = sand dunes and a desert sky behind

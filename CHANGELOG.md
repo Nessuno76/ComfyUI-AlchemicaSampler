@@ -2,12 +2,213 @@
 
 ## Unreleased
 
+### ⚗ Prompt · framing & look
+
+- **⚗ Prompt · framing presets** (`shot`, `camera_angle`, `subject_view`, `shot_lock`, new widgets at the end): shot
+  sizes from extreme close-up to establishing shot (close-up, head and shoulders, chest up, waist up, 3/4 length, full
+  body, full body in the scene, wide), special set-ups (fisheye, panoramic, anamorphic cinema, macro, over the shoulder,
+  point of view, selfie, tilt-shift, aerial drone, silhouette), camera angles (eye level, high, low, bird's-eye,
+  worm's-eye, Dutch) and subject views (front, three-quarter, profile, from behind, looking back). Krea 2 decides the
+  framing in the first step, so the preset acts on everything decided early: the framing sentence opens the scene, the
+  LLM is told it is fixed and framing words that fight it are removed (also from the detail). With `shot_lock` *strict*
+  (default) it also sets the frame shape and megapixels (a full body gets 4 MP, the face is small; a connected latent
+  keeps its size), adds framing negatives (e.g. *cropped feet* for a full body) and starts NAG from sigma 1.0 instead of
+  the hand-off. *text only* adds just the sentence.
+- **⚗ Prompt · look presets and a clear order of choice.** New optional menus `lighting` (13: window light, golden
+  hour, softbox, Rembrandt, neon...), `atmosphere` (10: fog, rain, snow, dust in the light, vintage film...) and
+  `background` (14: studio backdrops with negatives against scenery, beach, city, forest, interiors...), editable in
+  `shots/looks.txt` (+ `user/alchemica/looks.txt`), in the same gallery as the shots (now *📷 Choose framing & look…*).
+  **Frame and size** follow one rule: a connected latent wins, then **your** `aspect` / `megapixels`; the new values
+  `(from shot)` and `0` take them from the shot (2:3 · 2.5 MP without a shot). Before, a strict shot silently
+  overrode your resolution. aspect and megapixels are now always visible. At the bottom of the node a **strip of
+  thumbnails** shows the chosen shot › angle › view › light › atmosphere › background in the order they are applied,
+  and a **WILL APPLY** box lists what the node will really use (frame with its source and pixel size, presets,
+  negatives added, when NAG starts) before you run.
+- **Framing gallery + editable presets.** The framing presets now live in `shots/shots.txt` (one `[name]` section
+  per preset: group, text, aspect, megapixels, negative); your own presets go in `ComfyUI/user/alchemica/shots.txt`
+  (same name = replaces), no code to touch. A **📷 Choose framing…** button on ⚗ Prompt opens them as cards with
+  thumbnails, search and details. The thumbnails are real Krea 2 renders made on your machine by
+  `tools/make_shot_thumbs.py` (same subject and seed for every card, so they compare honestly); 31 thumbnails ship in
+  `shots/thumbs`. Editing `shots.txt` makes the Prompt node run again (it would otherwise reuse its cached result).
+  The close shot sizes were rewritten after checking the renders: they now say where the frame cuts and what stays out
+  of it (the first version drifted one size wider and cropped the head in close-ups).
+- **Framing follows the description (measured).** Krea 2 frames what the text describes: a scene that describes
+  only the face and the top stays a portrait even with a full-body preset, and a close-up whose text describes the
+  shoes makes the subject crouch to fit them. With a framing preset the LLM is now told to describe only what the
+  framing shows (the whole outfit when the feet are in the frame, nothing below the cut otherwise), and in *as
+  written* mode the report suggests describing the outfit when a wide shot gets a text without legs or shoes.
+- **⚗ Prompt · text boxes that grow, and a compact view.** The idea / prompt, detail and negative boxes start at
+  3 lines (as before) and grow with what you write, up to about 16 lines (then they scroll). The NAG / structure
+  parameters stay hidden until **⚙ NAG settings** (the NAG switch stays visible), and **⚙ compact view** hides the
+  technical settings once they are set (seed, LLM options, Ollama, NAG, strict, wide_frame, batch). Hidden values
+  still apply; both choices are saved with the workflow.
+- **Fix · head or feet cut in idea mode.** The LLM's scene described the feet (and the toes) but never the head, and
+  Krea 2 cut the head off; it also repeated the frame it was told (*Frame is vertical, 2:3, capturing her from ...*).
+  The anchor now checks for both the head/face AND the legs/feet (scene and detail), the composition text always
+  carries it for the whole-figure shots, and sentences that echo the frame are removed (listed in the report).
+  In strict mode NAG works from the first step, and there it used the LLM's whole negative (*distorted face,
+  cross-eyed, deformed mouth...*): it pushed the composition away from the face (subject seen from behind, head out
+  of frame). Now the first steps, until the hand-off, use only the framing negatives (preset, look, wide frame) and
+  the full negative takes over after the hand-off (both windows are in the report).
+- **Calibration reliability.** Profiles with fewer than 8 samples are marked PROVISIONAL, and `(auto)` prefers a
+  reliable profile of the same checkpoint (before, a 1-sample profile with the same LoRA stack could win over a
+  15-sample one). The Calibration node always runs (no ComfyUI cache), and a repeated prompt + seed is measured with a
+  new seed, so every queued run adds a real sample.
+- **⚗ Prompt: opening phrases.** New `phrase` menu: a sentence put in front of every prompt, as some fine-tune
+  authors recommend (e.g. "This is a casual, low-quality photo" for a model trained on amateur photos).
+  `(auto from model)` picks the phrase whose `match` words are in the checkpoint file name, nothing if none matches.
+  It goes at the start of the full text and, in the composition text, right after the framing sentence: measured on
+  a fine-tuned Krea 2 (3 seeds) it removed the wet-skin droplets and the logos on the clothes and gave a more natural
+  skin; in front of the framing it broke the frame in 1 seed of 3, only in the full text it lost most of its effect.
+  Presets in `shots/phrases.txt` and `ComfyUI/user/alchemica/phrases.txt`; the **✎ phrases…** button edits them.
+- **LoRA Stack+ in Nodes 2.0.** Every row showed the first LoRA (Nodes 2.0 binds a drawn widget by name and all
+  rows had the same one); changes were saved but not repainted; clicking a strength to type it broke the node
+  ("Cannot destructure property 'canvas'"); the hidden JSON field was visible; the previews strip went stale after
+  ➕ Add LoRA. Each row now has its own name, every change repaints the rows, the typed value has its own box
+  (Enter / OK confirms, Esc cancels: also in the classic interface) and the widgets are kept across rebuilds.
+  Tested with real clicks and keys in both interfaces: type a strength + Enter, on/off, arrows, pick, ✕, ➕.
+- **Nodes 2.0: options that hide.** ⚗ Prompt and ⚗ KSampler Flex hide their unused options in Nodes 2.0 too.
+- **⚗ Compare (new node).** Before / after slider that works in the classic interface and in Nodes 2.0 (ComfyUI's
+  ImageCompare draws only in Nodes 2.0, rgthree's Image Comparer only in the classic one).
+- **Full body shot: no extra body above the head.** The framing text asked for "space above the head and below the
+  feet"; the model filled that space with a second body part in some seeds (seen on a fine-tuned Krea 2: 1 seed in
+  3, with or without LoRAs). The phrase is gone; same seed, clean frontal figure.
+- **Alchemica samplers in every KSampler.** `alchemica_euler`, `alchemica_euler_2m`, `alchemica_heun` and the
+  `alchemica_dual` scheduler now appear in ComfyUI's own menus (core KSampler, KSamplerSelect, Krea Three Stage
+  Sampler...), next to euler and beta.
+- **⚗ Sigma Dose (new node).** Sigmas from any scheduler, the calibrated profile included, with one knob: `dose`
+  0 = the scheduler as it is, negative = more steps at high noise (composition), positive = more at low noise
+  (detail). The steps slide along the scheduler's own curve, so its shape and endpoints stay. The report counts the
+  steps per zone (composition σ ≥ 0.7 · forms · detail σ < 0.3) and lists the sigmas.
+- **⚗ Solver (new node).** The Alchemica loop as a SAMPLER for SamplerCustom, with `detail` and `variety`
+  (0 = pure solver).
+- **⚗ Composition (new node).** Gives the ⚗ Prompt's composition text (framing, subject, look, no detail) as a
+  conditioning, for samplers that take one prompt for the first steps and another for the rest, e.g. Krea Three
+  Stage Sampler (composition → `positive`, the Prompt's positive → `stage2_positive_optional`). With the full prompt
+  from the first step, a detail line made Krea 2 add a second body part above the subject in 2 seeds out of 3; with
+  the composition text in the first stage the frame came out as the chosen shot asked.
+- **⚗ Calibration · automatic profile name.** `profile_name` now defaults to `(auto)`: the profile is named after
+  the checkpoint file (plus the LoRA stack when one is connected), e.g. `myFinetune_v6INT8`. One profile per
+  model is valid at every resolution: Krea 2 uses a fixed shift, and on a 15-sample profile the calibrated 8-step
+  schedule at 6.3 MP and at 1.6 MP differ by less than 0.01 sigma. Calibrating a new model is: pick it in the loader,
+  queue 16 runs. The report says when the profile becomes RELIABLE.
+- **⚗ Calibration chart.** The node's chart now explains the profile: the phases, every single sample, one dot per
+  sample for hand-off and sharpness start, where the steps go, and a plain-words verdict (RELIABLE / PROVISIONAL).
+- **Detail boost report.** The sampler report says how much of `detail` was really applied and warns when the
+  profile's sharpness window leaves it almost off.
+- **Fix · detail boost off after a restart.** Below sigma 0.25 the `detail` parameter itself was set to 0, so after a
+  restart (sigma jumps back up) the boost stayed off for the rest of the loop. Now only that step skips it.
+- **Fix · a front view came out turned from behind.** Three things pushed the subject round: the LLM's *her body
+  angled slightly to show curves* in the composition text, a subject view with no negatives of its own, and LLM
+  negatives written as *no visible chest, no visible feet...*, which NAG reads as *visible chest* and pushes away
+  from. Views (and angles) now have a `negative` field in `shots.txt` (the opposite views), used by NAG from the
+  first step in strict mode; with a front view, clauses that turn the body away are removed (listed in the report);
+  double negatives (*no ...*, *without ...*) are dropped from the LLM's negative.
+- **Fix · half-removed view words and places that fought the background.** *three-quarter front view* is now one
+  term (removing only *front view* left *shown from a three-quarter*, which turned the subject); a dangling *shown
+  from* is tidied away. With a background chosen, *on a wooden deck*, *with blurred greenery*, pool, terrace, balcony
+  and similar places are removed from the scene too.
+- **Composition phase.** A long scene about the outfit (laces across the chest, the bust...) made Krea 2 frame the
+  bust even with a full-body preset, the wide-frame sentence and the anchor (21:9, 2026-10-17): it frames what
+  the text describes in detail. With a strict framing preset the Prompt now also writes a SHORT composition text
+  (framing, one-subject sentence for wide frames, the subject's first sentence, anchor, look) and hands it to the
+  samplers with the model; they use it for the first steps, until the measured hand-off sigma where the
+  composition is locked, and the full text after it (the two-phase mechanism of KSampler Pro, no extra cost).
+  Both texts are in the report; `composition_phase: false` in the options turns it off.
+- **Filters that keep a framing and a background honest (measured with a reference photo).** With a full-body
+  reference photo the LLM describes the whole outfit and the room whatever the rules say, and Krea 2 then crouches
+  the subject or splits the picture to fit shoes into a close-up, and mixes the photo's room with the chosen background
+  (a beach seen through the living-room window). Two deterministic filters now run after the LLM: a close shot
+  (`hide = legs` / `feet` in shots.txt) drops the clauses about legs and shoes, and a background preset drops the
+  place phrases and the clauses about another place (`in a modern living room`, `a sofa behind him`), keeping the
+  person. The report lists everything removed.
+
+### ⚗ LoRA Stack+
+
+- **⚗ Alchemica LoRA Stack+** (`AlchemicaLoraStackPlus`), replaces the 6-slot LoRA Stack:
+  - **Slots on demand**: ➕ *Add LoRA* adds a row (and opens the picker); ✕ removes it, ● switches it on/off without
+    losing the choice. All the rows are saved in one hidden widget (`loras`, JSON), so adding or removing rows never
+    shifts the saved values of a workflow.
+  - **Real strengths**: the number on the row is the one applied, no hidden multiplier. Arrows (±0.05) and
+    horizontal drag stay within ±2, the useful zone of normal LoRAs; a typed value (click the number) goes to ±5 for
+    slider LoRAs and turns orange beyond ±2. A second strength, `txt`, appears only when a CLIP is connected AND the
+    LoRA really has text-encoder weights (read from the file header, no tensor loaded).
+  - **Previews**: click the name for a searchable picker with a thumbnail of every LoRA; a strip under the rows shows
+    the active ones. Previews are read next to the LoRA file (`name.preview.png/.jpg/.jpeg/.webp`, `name.png/.jpg/
+    .jpeg/.webp/.gif`, the Civitai Helper / LoRA Manager convention). Missing one? Click the empty box to pick an
+    image, drop an image on the node, or right-click → *⚗ LoRA previews* → *use the last generated image*: the node
+    writes `name.preview.png` next to the LoRA.
+  - The node shows only problems (LoRA not found, failed to load); loaded LoRAs stay in a RAM cache (up to ~3 GB), so
+    changing a strength does not read the files again; a LoRA file replaced on disk with the same name re-runs.
+  - **LoRA card** (click `T`, a badge or a preview): preview, base model, trigger words, recommended strength,
+    Civitai link. Sources, first found wins: your notes (`name.json`, the A1111 format — the card writes it with
+    *Remember…*), Civitai (`name.civitai.info`), LoRA Manager (`name.metadata.json`), the file metadata (trigger
+    phrase; else the most frequent training tags, marked as a guess). The base model, when nothing says it, is guessed
+    from the layer names (Krea 2, Qwen-Image, Flux, Z-Image, SD3, Wan, SDXL, SD 1.5).
+  - **Compatibility check**: after a run each row shows how many layers of the model its LoRA really hooked; a LoRA
+    that hooks 0 (e.g. SDXL on Krea 2) gets a red badge and a message saying what it was made for. Before the run, an
+    orange badge marks LoRAs whose base model is not Krea 2. The picker shows the base model of every LoRA.
+  - **Trigger words**: chosen a LoRA, its words are filled in (switched on, unless they are only a guess from the
+    training tags). `T` green = they travel on the MODEL and **⚗ Prompt** adds the missing ones in front of the prompt,
+    no extra wire; the card copies them one by one or all together.
+  - **Recommended strength** as the starting value of a newly chosen LoRA (your notes, LoRA Manager, or the
+    "weight 0.8" / "strength 0.6-0.8" written in the Civitai description).
+  - **Civitai lookup**, only when you press *Fetch from Civitai* (card, or right-click → *⚗ Civitai: fetch info for
+    the LoRAs of this node*): SHA256 of the file → `civitai.com/api/v1/model-versions/by-hash`, answer saved as
+    `name.civitai.info`, first preview image with the lowest NSFW level saved as `name.preview.png` if you have none.
+    Optional `CIVITAI_API_KEY` environment variable.
+  - The 6-slot node stays for saved workflows (hidden); right-click on it → *⚗ Upgrade to LoRA Stack+* swaps it
+    keeping LoRAs, strengths (the old text multiplier becomes the real `txt` value), wires, title and colour.
+    `KreaAlchemicaMente_K2AM` uses the new node.
+
+### Fixes
+
+- **Fix · checkpoint fingerprint v2.** `(auto)` could pick the profile of the wrong checkpoint: the 1.0 fingerprint
+  read 8 weights that a fine-tune often leaves untouched (norms, modulation), so Krea 2 Turbo NVFP4 and a fine-tune of
+  it got the same id. The new fingerprint (`w…`) samples the raw bytes of every weight, including the packed NVFP4 /
+  FP8 / INT8 data and their block scales, and reads LoRA-patched weights from ComfyUI's backup, so LoRAs do not change
+  it. The Calibration writes it into the profile (`impronta2`) next to the old one. Older profiles keep working through
+  the old fingerprint; when several of them share it the report says so, and **picking the right profile by hand once**
+  teaches it this checkpoint (or re-run the Calibration).
+- **Fix · full body cut at the knees.** The framing filter also removed the LLM's words that *agreed* with the chosen
+  shot (`full-body` with the full-body preset): now only the conflicting ones go. And when a shot that shows the feet
+  gets a scene that never mentions legs or feet (a long description of the outfit's top is enough to make Krea 2 cut
+  at the knees), the node adds *the whole body is visible from head to toe, legs and feet included* and says so in the
+  report. The place filter no longer leaves a dangling *setting* behind.
+- **Fix · repeated people in wide frames.** At 16:9 / 21:9 and high megapixels in ONE stage (e.g. 6 MP = 3344×1888)
+  Krea 2 composes on a canvas far wider than it was trained on and repeats the subject. Every sampler now switches
+  two stages on by itself when a from-scratch image is wider than 2400 px (composition at half size, then
+  refinement at full size) and says so in the report; `auto_two_stage: false` in the options turns it off. The Prompt
+  adds negatives against a repeated subject for frames wider than 1.7:1, and the WILL APPLY box warns before the run.
+- **Fix · head and feet cropped in the automatic two stages.** When the wide-frame guard switched two stages on, the
+  hand-off came from the profile (e.g. 0.88, measured on a 2:3 portrait): stage 1 stopped while the image was barely
+  sketched and stage 2 re-noised the full 3136×1344 canvas so much that Krea 2 composed it again, zoomed in and cut
+  head and legs. The guard now caps the hand-off at 0.65 and turns the resolution correction on (`handoff_k` auto, when
+  it was 1), so stage 1 composes at half size and stage 2 only refines; the report says *hand-off capped*. Lower
+  hand-offs and explicit two-stage settings are left untouched.
+- **Fix · a scene figure came out as a plain full body.** The frame described to the LLM said *vertical (portrait)*
+  and the LLM copied *portrait* into the scene, pulling the framing closer: it now says *taller than wide*. The
+  whole-body anchor gets a smaller version for *full body in the scene*, *wide shot* and *establishing shot*
+  (`anchor` in shots.txt), and the WILL APPLY box notes when your aspect differs from the one a shot is designed for.
+- **⚗ Prompt · `wide_frame`** (new widget at the end): frames 16:9 and wider (19:9, 21:9) sometimes repeated the
+  subject. *one subject, background fills the sides* (default) adds, right after the framing sentence, *only one
+  person in the whole picture; the <background> continues across the full width on both sides of the subject*, tells
+  the LLM the same, and adds negatives against copies; *free* adds nothing (when you want a group).
+- **Calibration report in the node.** ⚗ Alchemica Calibration now shows its report (fingerprint, hand-off,
+  safe eta/detail, warnings) inside the node after each run, also when the `report` output is not connected.
+
+### Examples and documentation
+
 - **⚗ Honest comparison workflow** (`KREA2_CONFRONTO_ONESTO`): the same prompt, seed and size through ComfyUI's own
   KSampler (A), the same Euler with only the calibrated step schedule (B) and the full recipe (C), with NAG off so that
   only the sampling differs. The README shows three runs and says plainly where each branch is better, worse or just
   different.
 - **README rewritten** around the five-node starter line and the contents of the package; the long node reference moved
   to `docs/REFERENCE.md`.
+- **`shots/README.md`**: how to edit the framing and look presets and how to render their gallery thumbnails
+  (`tools/make_shot_thumbs.py`, with `--sheet` to check every card at a glance).
+- Cleanup: the last runtime messages still in Italian are now English; unused code removed; the framing
+  module keeps its presets only in the text files (no second copy in the code).
 
 ## 1.1.0 — 2026-10-12
 

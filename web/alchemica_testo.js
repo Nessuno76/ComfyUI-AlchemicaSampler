@@ -68,4 +68,5 @@ export function scriviTesto(node, nome, testo) {
     const sz = node.computeSize?.();
     if (sz && node.size[1] < sz[1]) node.setSize([node.size[0], sz[1]]);
     node.setDirtyCanvas?.(true, true);
+    w.triggerDraw?.();                    // Nodes 2.0 repaints a drawn widget only when asked
 }

@@ -104,14 +104,14 @@
   },
   {
    "id": 2,
-   "type": "AlchemicaLoraLoader",
+   "type": "AlchemicaLoraStackPlus",
    "pos": [
     30,
     540
    ],
    "size": [
     420,
-    400
+    170
    ],
    "flags": {},
    "order": 1,
@@ -138,120 +138,11 @@
      "link": 3
     },
     {
-     "label": "lora_1",
-     "name": "lora_1",
-     "type": "COMBO",
+     "label": "loras",
+     "name": "loras",
+     "type": "STRING",
      "widget": {
-      "name": "lora_1"
-     },
-     "link": null
-    },
-    {
-     "label": "strength_1",
-     "name": "strength_1",
-     "type": "FLOAT",
-     "widget": {
-      "name": "strength_1"
-     },
-     "link": null
-    },
-    {
-     "label": "lora_2",
-     "name": "lora_2",
-     "type": "COMBO",
-     "widget": {
-      "name": "lora_2"
-     },
-     "link": null
-    },
-    {
-     "label": "strength_2",
-     "name": "strength_2",
-     "type": "FLOAT",
-     "widget": {
-      "name": "strength_2"
-     },
-     "link": null
-    },
-    {
-     "label": "lora_3",
-     "name": "lora_3",
-     "type": "COMBO",
-     "widget": {
-      "name": "lora_3"
-     },
-     "link": null
-    },
-    {
-     "label": "strength_3",
-     "name": "strength_3",
-     "type": "FLOAT",
-     "widget": {
-      "name": "strength_3"
-     },
-     "link": null
-    },
-    {
-     "label": "lora_4",
-     "name": "lora_4",
-     "type": "COMBO",
-     "widget": {
-      "name": "lora_4"
-     },
-     "link": null
-    },
-    {
-     "label": "strength_4",
-     "name": "strength_4",
-     "type": "FLOAT",
-     "widget": {
-      "name": "strength_4"
-     },
-     "link": null
-    },
-    {
-     "label": "lora_5",
-     "name": "lora_5",
-     "type": "COMBO",
-     "widget": {
-      "name": "lora_5"
-     },
-     "link": null
-    },
-    {
-     "label": "strength_5",
-     "name": "strength_5",
-     "type": "FLOAT",
-     "widget": {
-      "name": "strength_5"
-     },
-     "link": null
-    },
-    {
-     "label": "lora_6",
-     "name": "lora_6",
-     "type": "COMBO",
-     "widget": {
-      "name": "lora_6"
-     },
-     "link": null
-    },
-    {
-     "label": "strength_6",
-     "name": "strength_6",
-     "type": "FLOAT",
-     "widget": {
-      "name": "strength_6"
-     },
-     "link": null
-    },
-    {
-     "label": "strength_clip",
-     "name": "strength_clip",
-     "shape": 7,
-     "type": "FLOAT",
-     "widget": {
-      "name": "strength_clip"
+      "name": "loras"
      },
      "link": null
     }
@@ -284,37 +175,13 @@
    ],
    "properties": {
     "cnr_id": "comfyui-alchemicasampler",
-    "Node name for S&R": "AlchemicaLoraLoader"
+    "Node name for S&R": "AlchemicaLoraStackPlus"
    },
    "widgets_values": [
-    "(none)",
-    1,
-    "(none)",
-    1,
-    "(none)",
-    1,
-    "(none)",
-    1,
-    "(none)",
-    1,
-    "(none)",
-    1,
-    1
+    "[{\"on\":true,\"lora\":\"(none)\",\"strength\":1,\"strength_clip\":1}]"
    ],
    "widgets_values_named": {
-    "lora_1": "(none)",
-    "strength_1": 1,
-    "lora_2": "(none)",
-    "strength_2": 1,
-    "lora_3": "(none)",
-    "strength_3": 1,
-    "lora_4": "(none)",
-    "strength_4": 1,
-    "lora_5": "(none)",
-    "strength_5": 1,
-    "lora_6": "(none)",
-    "strength_6": 1,
-    "strength_clip": 1
+    "loras": "[{\"on\":true,\"lora\":\"(none)\",\"strength\":1,\"strength_clip\":1}]"
    },
    "title": "⚗ II · LoRA Stack",
    "color": "#1f3a5a",
@@ -1303,7 +1170,7 @@
    "outputs": [],
    "properties": {},
    "widgets_values": [
-    "### ⚗ Quick guide\n1. **Load** – Krea 2 Turbo + Qwen3-VL text encoder + Qwen-Image VAE.\n2. **LoRA** – up to 6, `(none)` = off.\n3. **Prompt** – write an *idea* (any language): Krea 2's own encoder writes the prompt. `mode → as written` to keep your text. Format: `aspect` + `megapixels`. NAG on = the negative works at cfg 1.\n4. **Sampler** – leave it as is: `profile (auto)` + `alchemica_calibrated` + calibration **v2** use the step spacing measured on your checkpoint. Two stages, resolution-corrected hand-off and **DeGrid** (Krea 2 VAE grid fix) are on.\n5. **Save** – pick drive and folder with 📁 *Browse folders…*; the file takes the workflow's name.\n\n**Tips** · more quality: `steps` 10-12 · more variety between seeds: `variety` 0.6 · strong LoRAs with \"wet\" skin: `variety` 0.15-0.2 · no profile yet? run *⚗ Alchemica Calibration* once on your checkpoint."
+    "### ⚗ Quick guide\n1. **Load** – Krea 2 Turbo + Qwen3-VL text encoder + Qwen-Image VAE.\n2. **LoRA** – ➕ *Add LoRA* for each one, click the name to pick it (with previews). The number is the real strength: ±2 with arrows or drag, up to ±5 typed; ● = on/off.\n3. **Prompt** – write an *idea* (any language): Krea 2's own encoder writes the prompt. `mode → as written` to keep your text. Format: `aspect` + `megapixels`. NAG on = the negative works at cfg 1.\n4. **Sampler** – leave it as is: `profile (auto)` + `alchemica_calibrated` + calibration **v2** use the step spacing measured on your checkpoint. Two stages, resolution-corrected hand-off and **DeGrid** (Krea 2 VAE grid fix) are on.\n5. **Save** – pick drive and folder with 📁 *Browse folders…*; the file takes the workflow's name.\n\n**Tips** · more quality: `steps` 10-12 · more variety between seeds: `variety` 0.6 · strong LoRAs with \"wet\" skin: `variety` 0.15-0.2 · no profile yet? run *⚗ Alchemica Calibration* once on your checkpoint."
    ],
    "color": "#2a2a2a",
    "bgcolor": "#1c1c1c"

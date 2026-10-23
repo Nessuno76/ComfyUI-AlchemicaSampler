@@ -93,11 +93,32 @@ try:  # save image with a destination-subfolder dropdown
 except Exception as e:  # pragma: no cover
     print(f"[AlchemicaSampler] Save Image node NOT loaded: {e}")
 
+try:  # LoRA Stack+: LoRA slots on demand, real strengths, previews (replaces the 6-slot LoRA Stack)
+    from .nodes_lora import NODE_CLASS_MAPPINGS as _L, NODE_DISPLAY_NAME_MAPPINGS as _L_NAMES
+    NODE_CLASS_MAPPINGS.update(_L)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_L_NAMES)
+except Exception as e:  # pragma: no cover
+    print(f"[AlchemicaSampler] LoRA Stack+ node NOT loaded: {e}")
+
 try:  # 1.1 restyle: English, community-standard twins of every node; the 1.0 nodes become hidden (legacy)
     from .nodes_v2 import costruisci as _costruisci_v2
     _costruisci_v2(NODE_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS)
 except Exception as e:  # pragma: no cover
     print(f"[AlchemicaSampler] 1.1 nodes NOT created: {e}")
+
+try:  # modular pieces: Alchemica solvers/schedulers in ComfyUI's lists, Sigma Dose and Solver nodes
+    from .nodes_asampler import NODE_CLASS_MAPPINGS as _AS, NODE_DISPLAY_NAME_MAPPINGS as _AS_NAMES
+    NODE_CLASS_MAPPINGS.update(_AS)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_AS_NAMES)
+except Exception as e:  # pragma: no cover
+    print(f"[AlchemicaSampler] Sigma Dose / Solver nodes NOT loaded: {e}")
+
+try:  # before / after slider that works in the classic interface and in Nodes 2.0
+    from .nodes_confronto import NODE_CLASS_MAPPINGS as _CMP, NODE_DISPLAY_NAME_MAPPINGS as _CMP_NAMES
+    NODE_CLASS_MAPPINGS.update(_CMP)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_CMP_NAMES)
+except Exception as e:  # pragma: no cover
+    print(f"[AlchemicaSampler] Compare node NOT loaded: {e}")
 
 WEB_DIRECTORY = "./web"   # interface extensions (pass-through connectors that appear one at a time)
 
