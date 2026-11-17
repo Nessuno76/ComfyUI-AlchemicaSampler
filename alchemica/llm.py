@@ -4,95 +4,45 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 """
-Who writes the prompt: Krea 2's own text encoder (Qwen3-VL-4B, no server) or a model served by Ollama.
+Who writes the prompt: Krea 2's own text encoder (Qwen3-VL-4B, no server).
 Both get the same system rules (testo.sistema) and the same user message (testo.utente); the answer is
-cleaned by testo.rifinisci. Plain urllib: no extra Python package.
+cleaned by testo.rifinisci. When the optional local file alchemica/ollama.py is present, a model served by Ollama can write it too.
 
 Answers are cached in memory (same rules + text + image + creativity/seed -> same answer), so changing the
 NAG, the resolution or the pass-through never makes the LLM write again.
 """
-import base64
 import hashlib
-import io
-import json
 import re
-import urllib.error
-import urllib.request
 
 OLLAMA_URL = "http://127.0.0.1:11434"
 NESSUN_MODELLO = "(no Ollama model found: start Ollama, then press R)"
+SENZA_OLLAMA = "(Ollama not included: Krea 2's text encoder writes the prompt)"
 _CACHE = {}
 _CACHE_MAX = 64
 
 
-# ------------------------------------------------------------------ Ollama
-def _url(base, percorso):
-    base = (base or OLLAMA_URL).strip().rstrip("/")
-    if not base.startswith("http"):
-        base = "http://" + base
-    return base + percorso
+# ------------------------------------------------------------------ optional Ollama backend (local file, not published)
+def _backend_ollama():
+    try:
+        from . import ollama as _o
+        return _o
+    except ImportError:
+        return None
 
 
 def modelli_ollama(base=OLLAMA_URL, timeout=0.8):
-    """Names of the installed Ollama models ([] if Ollama is not running)."""
-    try:
-        with urllib.request.urlopen(_url(base, "/api/tags"), timeout=timeout) as r:
-            dati = json.loads(r.read().decode("utf-8"))
-        return sorted(m.get("name") or m.get("model") for m in dati.get("models", []) if m.get("name") or m.get("model"))
-    except Exception:
-        return []
-
-
-def _png_b64(img):
-    """IMAGE tensor [B,H,W,C] (first image) -> base64 PNG."""
-    import numpy as np
-    from PIL import Image
-    a = (img[0].detach().cpu().float().clamp(0, 1).numpy() * 255).round().astype(np.uint8)
-    if a.shape[-1] == 4:
-        a = a[..., :3]
-    pil = Image.fromarray(a)
-    pil.thumbnail((1024, 1024))                         # vision models do not need more; keeps the request small
-    buf = io.BytesIO()
-    pil.save(buf, format="PNG")
-    return base64.b64encode(buf.getvalue()).decode("ascii")
-
-
-def _post(url, corpo, timeout):
-    req = urllib.request.Request(url, data=json.dumps(corpo).encode("utf-8"),
-                                 headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return json.loads(r.read().decode("utf-8"))
+    """Names of the installed Ollama models ([] if Ollama is not running or not included)."""
+    o = _backend_ollama()
+    return o.modelli_ollama(base, timeout) if o else []
 
 
 def ollama(modello, sistema, utente, immagine=None, creativita=0.0, seed=0, max_token=400,
            base=OLLAMA_URL, scarica=True, timeout=600):
-    if not modello or modello == NESSUN_MODELLO:
-        raise RuntimeError("Alchemica Prompt: no Ollama model selected. Start Ollama (ollama serve), press R "
-                           "in ComfyUI to refresh the list, or turn 'use_ollama' off to use Krea 2's text encoder.")
-    msg = {"role": "user", "content": utente}
-    if immagine is not None:
-        msg["images"] = [_png_b64(immagine)]
-    corpo = {"model": modello, "stream": False, "think": False,
-             "messages": [{"role": "system", "content": sistema}, msg],
-             "options": {"temperature": float(creativita), "seed": int(seed) % (2 ** 31),
-                         "num_predict": int(max_token), "top_p": 0.95, "repeat_penalty": 1.05},
-             "keep_alive": 0 if scarica else "10m"}
-    url = _url(base, "/api/chat")
-    try:
-        try:
-            r = _post(url, corpo, timeout)
-        except urllib.error.HTTPError as ex:
-            dettaglio = ex.read().decode("utf-8", "replace")
-            if ex.code == 400 and "think" in dettaglio.lower():      # older Ollama or a model without 'think'
-                corpo.pop("think")
-                r = _post(url, corpo, timeout)
-            else:
-                raise RuntimeError(f"Ollama answered {ex.code}: {dettaglio[:300]}")
-    except urllib.error.URLError as ex:
-        raise RuntimeError(f"Alchemica Prompt: Ollama not reachable at {base} ({ex.reason}). Start it with "
-                           f"'ollama serve' or turn 'use_ollama' off.")
-    testo = (r.get("message") or {}).get("content", "") or r.get("response", "")
-    return re.sub(r"<think>.*?</think>", "", testo, flags=re.S).strip()
+    o = _backend_ollama()
+    if o is None:
+        raise RuntimeError("Alchemica Prompt: Ollama is not included in this package. Turn 'use_ollama' off: "
+                           "Krea 2's own text encoder writes the prompt, from text or from an image.")
+    return o.ollama(modello, sistema, utente, immagine, creativita, seed, max_token, base, scarica, timeout)
 
 
 # ------------------------------------------------------------------ Krea 2 text encoder

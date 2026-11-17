@@ -113,24 +113,43 @@ def dischi():
     """'(ComfyUI output)' + the drives that exist (Windows C:\\ D:\\ ...; elsewhere '/')."""
     out = [OUTPUT_COMFY]
     if os.name == "nt":
-        import ctypes
-        import string
-        kernel = ctypes.windll.kernel32
-        presenti = kernel.GetLogicalDrives()
-        for i, lettera in enumerate(string.ascii_uppercase):
-            if i < 2 or not presenti >> i & 1:                 # skip A: and B:, and letters not in use
-                continue
-            radice = f"{lettera}:\\"
-            try:
-                # A disconnected network drive makes os.path.exists wait ~20 s, and INPUT_TYPES runs on
-                # every object_info: list mapped network drives without touching them.
-                if kernel.GetDriveTypeW(radice) == 4 or os.path.exists(radice):
-                    out.append(radice)
-            except Exception:
-                pass
+        out += _dischi_windows()
     else:
         out.append("/")
     return out
+
+
+_DISCHI = {"quando": 0.0, "lista": []}
+
+
+def _dischi_windows(attesa=1.0, validita=30.0):
+    """C:\\ .. Z:\\ that exist. Each letter is checked in its own thread: a disconnected network drive makes
+    os.path.exists wait ~20 s, and INPUT_TYPES runs on every object_info. A letter that does not answer within
+    'attesa' seconds is listed anyway (as a mapped network drive was before), so a saved choice stays valid.
+    The answer is kept for 'validita' seconds."""
+    import string
+    import threading
+    import time
+    if time.monotonic() - _DISCHI["quando"] < validita:
+        return list(_DISCHI["lista"])
+    esito = {}
+
+    def prova(radice):
+        try:
+            esito[radice] = os.path.exists(radice)
+        except Exception:
+            esito[radice] = False
+
+    radici = [f"{lettera}:\\" for lettera in string.ascii_uppercase[2:]]   # skip A: and B:
+    fili = [threading.Thread(target=prova, args=(r,), daemon=True) for r in radici]
+    for f in fili:
+        f.start()
+    fine = time.monotonic() + attesa
+    for f in fili:
+        f.join(max(0.0, fine - time.monotonic()))
+    lista = [r for r in radici if esito.get(r, True)]            # no answer yet = slow drive: keep it
+    _DISCHI.update(quando=time.monotonic(), lista=lista)
+    return list(lista)
 
 
 def base_di(disco):

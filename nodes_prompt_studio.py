@@ -38,6 +38,8 @@ STRUCTURES = {"off": "spenta", "SEG": "SEG", "PAG": "PAG"}
 
 
 def _ollama_lista():
+    if llm._backend_ollama() is None:               # published package: Ollama is a local add-on
+        return [llm.SENZA_OLLAMA]
     return llm.modelli_ollama() or [llm.NESSUN_MODELLO]
 
 
@@ -75,7 +77,7 @@ class AlchemicaPromptStudio:
             "style": (list(STYLE.values()), {"default": STYLE["foto realistica"]}),
             "use_ollama": ("BOOLEAN", {"default": False, "label_on": "Ollama", "label_off": "own text encoder",
                            "tooltip": "Who writes the prompt. Off = Krea 2's own text encoder (Qwen3-VL, no server). "
-                                      "On = a model served by Ollama (needs 'ollama serve')"}),
+                                      "On = a model served by Ollama (needs 'ollama serve' and the local Ollama add-on, not included in the published package)"}),
             "ollama_model": (ollama, {"default": ollama[0],
                              "tooltip": "Installed Ollama models (press R to refresh). For images use a vision model "
                                         "(qwen2.5vl, llava, gemma3...)"}),

@@ -17,3 +17,6 @@ web/alchemica_corpo.js
 web/manichino/
 web/manichino_editor*/
 web/manichino_panel_codex.js
+# 1.1.2: no network code in the published package (local only)
+alchemica/ollama.py
+tools/make_shot_thumbs.py

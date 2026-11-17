@@ -1,5 +1,23 @@
 # ⚗ Changelog
 
+## 1.1.2 — 2026-11-17
+
+### Changed · A package that only talks to ComfyUI
+1.1.0 and 1.1.1 were flagged by the Comfy Registry scan; 1.0.0, which has no network code, is active. This version
+keeps the published package free of the patterns such a scan looks for:
+- **Ollama is no longer part of the published package.** ⚗ Prompt writes the prompt with Krea 2's own text encoder,
+  from text or from an image, as it did by default. The `use_ollama`, `ollama_model`, `ollama_url` and `unload_ollama`
+  widgets stay where they were, so saved workflows load unchanged; with `use_ollama` on, the node stops with a clear
+  message.
+- **`tools/make_shot_thumbs.py` is no longer shipped.** To use your own gallery card, save an image named after the
+  preset in `ComfyUI/user/alchemica/shot_thumbs/` (see `shots/README.md`).
+- **⚗ Save Image** lists the drives without Windows system calls: each letter is checked in its own thread, with a
+  one-second limit, so a disconnected network drive still does not freeze ComfyUI.
+- Optional modules are loaded with plain imports.
+- Lines with several statements separated by `;` are split (the Registry publisher will soon reject them).
+- What still reaches the network, and only when you press its button: the ⚗ LoRA Stack+ **Civitai** lookup (it sends
+  the SHA256 of the LoRA file to civitai.com to fetch its trigger words and preview).
+
 ## 1.1.1 — 2026-11-17
 
 ### New · Two starter workflows for Krea 2

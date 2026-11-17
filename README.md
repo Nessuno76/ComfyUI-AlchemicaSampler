@@ -37,7 +37,7 @@ Load Krea 2  →  LoRA Stack+  →  Prompt  →  KSampler Flex  →  Save Image
 |---|---|---|
 | 1 | **⚗ Load Krea 2** | model + text encoder + VAE in one node, the encoder always loaded with the right type |
 | 2 | **⚗ LoRA Stack+** | as many LoRAs as you need (➕), the real strength on each row, a picker with previews, trigger words added to the prompt, a warning when a LoRA is not for your model |
-| 3 | **⚗ Prompt** | writes the prompt with Krea 2's own encoder (or Ollama, or your own text), encodes it, applies NAG, sets the latent size; **framing presets** (full body, 3/4, chest up, close-up, fisheye, panoramic, angles, views) hold the shot you ask for |
+| 3 | **⚗ Prompt** | writes the prompt with Krea 2's own encoder (or uses your own text), encodes it, applies NAG, sets the latent size; **framing presets** (full body, 3/4, chest up, close-up, fisheye, panoramic, angles, views) hold the shot you ask for |
 | 4 | **⚗ KSampler Flex** | any ComfyUI sampler and scheduler, or the calibrated ones; two stages; DeGrid; a report of what it did |
 | 5 | **⚗ Save Image** | pick drive and folder in a browser, name the file after the workflow |
 

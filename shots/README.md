@@ -47,82 +47,24 @@ Writing a good framing sentence (learned from the renders, 2026-10-14/15):
 - **Negatives against the neighbour sizes** help (a full body gets `waist-up portrait, half body`; a close-up gets
   `torso, legs, shoes`). For wide frames add `duplicated person, repeated figure`: a 21:9 frame invites copies.
 
-## 2 · Rendering the thumbnails
+## 2 · Thumbnails
 
-`tools/make_shot_thumbs.py` renders one real Krea 2 image per preset with **your running ComfyUI** (same subject, same
-seed for every card, so they compare honestly) and saves a small `.jpg`. Nothing is invented: every card is a render.
+The shipped cards in `thumbs/` are real Krea 2 renders (Krea 2 Turbo, 1 MP, seed 1234, the same subject on every card,
+so they compare honestly). Nothing is invented: every card is a render.
 
-You need ComfyUI running with AlchemicaSampler loaded, the queue free (your own jobs would wait behind the renders), the
-three models below, and Pillow (ComfyUI's own Python has it). Run it from the package folder with **ComfyUI's Python**:
+**Your own card** for a preset (yours or a shipped one): save an image named after the preset in
+`ComfyUI/user/alchemica/shot_thumbs/`. The name is the preset name with every character that is not a letter or a
+digit turned into `_` (`waist up` → `waist_up.jpg`, `3/4 length` → `3_4_length.jpg`); `.jpg`, `.png` and `.webp` work.
+Your folder is read first, so your card replaces the shipped one without touching the package. A good card is a render
+of that preset with the Prompt node, same subject and seed as your other cards; keep it small (about 384 px on the long
+side).
 
-```bash
-cd ComfyUI/custom_nodes/comfyui-alchemicasampler
-<ComfyUI python> tools/make_shot_thumbs.py --sheet check.jpg
-```
-
-By default it renders only the presets that have no thumbnail yet, into `user/alchemica/shot_thumbs/`, at 1 MP, about
-15 s each (≈ 17 min for all 68). `--sheet` saves one overview image with every card and its name: **open it and check
-each card shows what its name says** before you keep them.
-
-| Option | Default | Use it to |
-|---|---|---|
-| `--overwrite` | off | render again presets that already have a thumbnail |
-| `--only "text"` | all | only presets whose name contains the text (`--only fisheye`) |
-| `--group G` | all | only one group: `shot`, `angle`, `view`, `light`, `atmosphere`, `background` |
-| `--package` | off | write into this folder's `thumbs/` (to ship them) instead of your user folder |
-| `--subject "..."` | a man with a top knot... | scene text for the **close** shots: describe only what they show (face, upper clothes) |
-| `--subject-full "..."` | same man + joggers and sneakers | scene text for the shots that **show the legs** (whole outfit) |
-| `--subject-no-place "..."` | same man, no place | scene text for the **background** and **atmosphere** cards (no room, or it fights the preset) |
-| `--unet` `--clip` `--vae` | Krea 2 Turbo NVFP4, Qwen3-VL 4B, Qwen-Image VAE | the models (use public ones for thumbnails you will share) |
-| `--seed` | 1234 | another draw of every card |
-| `--mp` | 1.0 | render size (thumbnails are small; more MP = slower, not better cards) |
-| `--base-shot` | 3/4 length | the shot used under the angle / view / look cards |
-| `--card-view` | front | the view used on shot / angle / look cards (so a card shows only what its preset changes) |
-| `--image photo.png` | none | let the LLM read a reference photo for every card (see the warning below) |
-| `--size` | 384 | long side of the saved thumbnail |
-| `--server` | http://127.0.0.1:8188 | another ComfyUI address |
-
-Which text goes to which card: close shots (`extreme close-up`, `close-up`, `head and shoulders`, `chest up`,
-`waist up`, `fisheye`, `macro`, `over the shoulder`, `point of view`, `selfie`, `anamorphic`) use `--subject`; background and
-atmosphere cards use `--subject-no-place`; everything else uses `--subject-full`. The same `hide` filter as the node
-removes the shoes from a 3/4 card.
-
-### Typical jobs
-
-```bash
-# your own subject, only for you (the gallery shows your cards first, the package is untouched)
-<python> tools/make_shot_thumbs.py --overwrite --sheet mine.jpg ^
-    --subject "a woman with long red hair and green eyes, white linen shirt, in a sunny kitchen" ^
-    --subject-full "a woman with long red hair, white linen shirt, blue jeans and sandals, in a sunny kitchen" ^
-    --subject-no-place "a woman with long red hair, white linen shirt, blue jeans and sandals"
-
-# you edited one preset in user/alchemica/shots.txt: render just that card again
-<python> tools/make_shot_thumbs.py --overwrite --only "waist up"
-
-# a new preset you added: no --overwrite needed, only the missing card is rendered
-<python> tools/make_shot_thumbs.py --only "my new shot"
-```
-
-(`^` continues the line in the Windows terminal; use `\` on Linux / macOS.)
-
-### Warning: reference photos
-
-`--image` works, but **a reference photo makes poor cards**: Krea 2's text encoder copies the photo's room, pose and
-outfit and ignores the framing and look rules (measured 2026-10-15: close shots came out split or crouching, angles all
-frontal, backgrounds mixed with the photo's room). For cards, describe the photo **in words** with the three subject
-options above. The `hide` and background filters make photo-based prompts much better in normal use, but a gallery is
-clearer from text.
-
-### One render is not a statistic
-
-Each card is one draw. If a card is wrong, change the preset's sentence or negatives, render that card again, and check
-it on a second seed (`--seed 99 --only "..."`) before keeping the new wording.
+**Reference photos make poor cards**: Krea 2's text encoder copies the photo's room, pose and outfit and ignores the
+framing and look rules (measured 2026-10-15). For cards, describe the subject **in words**. Each card is one draw: if a
+card is wrong, change the preset's sentence or negatives and check it on a second seed before keeping the new wording.
 
 ---
 
 **In breve (italiano)** — I preset sono in `shots.txt` e `looks.txt`; i tuoi vanno in `ComfyUI/user/alchemica/` (stesso
-nome = sostituisce). Le miniature si rifanno con ComfyUI acceso e la coda libera:
-`<python di ComfyUI> tools/make_shot_thumbs.py --overwrite --sheet controllo.jpg`, con `--subject` (inquadrature strette:
-solo ciò che si vede), `--subject-full` (abbigliamento intero) e `--subject-no-place` (senza luogo, per sfondi e
-atmosfere). Senza `--package` finiscono nella tua cartella e la galleria le mostra per prime. Guarda sempre il foglio
-`--sheet` prima di tenerle. Meglio descrivere la persona a parole che usare `--image`.
+nome = sostituisce). Per una miniatura tua salva un'immagine col nome del preset (caratteri diversi da lettere e cifre → `_`, es. `waist_up.jpg`)
+in `ComfyUI/user/alchemica/shot_thumbs/`: la galleria la mostra al posto di quella del pacchetto. Meglio descrivere la persona a parole che partire da una foto.

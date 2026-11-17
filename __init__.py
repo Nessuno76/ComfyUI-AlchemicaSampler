@@ -102,19 +102,41 @@ except Exception as e:  # pragma: no cover
 
 # New-person tools (model views & poses, body shape, body guide, face / torso / intimate): still in the lab and not
 # published yet. When their files are not in the folder they are skipped without a message.
-import importlib as _importlib
-import os as _os
+def _assente(e, modulo):
+    return isinstance(e, ModuleNotFoundError) and (e.name or "").endswith(modulo)
 
-for _mod, _what in (("nodes_modello", "Model views"), ("nodes_corpo", "Body shape"),
-                    ("nodes_guida", "Body guide"), ("nodes_dettagli", "Face / torso / intimate")):
-    if not _os.path.exists(_os.path.join(_os.path.dirname(__file__), _mod + ".py")):
-        continue
-    try:
-        _m = _importlib.import_module("." + _mod, __name__)
-        NODE_CLASS_MAPPINGS.update(_m.NODE_CLASS_MAPPINGS)
-        NODE_DISPLAY_NAME_MAPPINGS.update(_m.NODE_DISPLAY_NAME_MAPPINGS)
-    except Exception as e:  # pragma: no cover
-        print(f"[AlchemicaSampler] {_what} nodes NOT loaded: {e}")
+
+try:
+    from .nodes_modello import NODE_CLASS_MAPPINGS as _MV, NODE_DISPLAY_NAME_MAPPINGS as _MV_NAMES
+    NODE_CLASS_MAPPINGS.update(_MV)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_MV_NAMES)
+except Exception as e:  # pragma: no cover
+    if not _assente(e, "nodes_modello"):
+        print(f"[AlchemicaSampler] Model views node NOT loaded: {e}")
+
+try:
+    from .nodes_corpo import NODE_CLASS_MAPPINGS as _BS, NODE_DISPLAY_NAME_MAPPINGS as _BS_NAMES
+    NODE_CLASS_MAPPINGS.update(_BS)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_BS_NAMES)
+except Exception as e:  # pragma: no cover
+    if not _assente(e, "nodes_corpo"):
+        print(f"[AlchemicaSampler] Body shape node NOT loaded: {e}")
+
+try:
+    from .nodes_guida import NODE_CLASS_MAPPINGS as _BG, NODE_DISPLAY_NAME_MAPPINGS as _BG_NAMES
+    NODE_CLASS_MAPPINGS.update(_BG)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_BG_NAMES)
+except Exception as e:  # pragma: no cover
+    if not _assente(e, "nodes_guida"):
+        print(f"[AlchemicaSampler] Body guide node NOT loaded: {e}")
+
+try:
+    from .nodes_dettagli import NODE_CLASS_MAPPINGS as _BD, NODE_DISPLAY_NAME_MAPPINGS as _BD_NAMES
+    NODE_CLASS_MAPPINGS.update(_BD)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_BD_NAMES)
+except Exception as e:  # pragma: no cover
+    if not _assente(e, "nodes_dettagli"):
+        print(f"[AlchemicaSampler] Face / torso / intimate nodes NOT loaded: {e}")
 
 try:  # 1.1 restyle: English, community-standard twins of every node; the 1.0 nodes become hidden (legacy)
     from .nodes_v2 import costruisci as _costruisci_v2
