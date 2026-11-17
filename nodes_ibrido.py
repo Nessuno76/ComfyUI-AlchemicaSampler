@@ -377,8 +377,10 @@ def ritaglia_volto(img, lato=512, margine=2.2):
     H, W = x.shape[0], x.shape[1]
     lato_box = max(x1 - x0, y1 - y0) * margine
     cx, cy = (x0 + x1) / 2, (y0 + y1) / 2 - 0.08 * lato_box      # a little upwards: hair and forehead
-    l = int(max(0, cx - lato_box / 2)); t = int(max(0, cy - lato_box / 2))
-    r = int(min(W, cx + lato_box / 2)); b = int(min(H, cy + lato_box / 2))
+    l = int(max(0, cx - lato_box / 2))
+    t = int(max(0, cy - lato_box / 2))
+    r = int(min(W, cx + lato_box / 2))
+    b = int(min(H, cy + lato_box / 2))
     if r - l < 16 or b - t < 16:
         return None, "face too small"
     c = img[:1, t:b, l:r, :3].float().permute(0, 3, 1, 2)

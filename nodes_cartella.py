@@ -185,8 +185,10 @@ class AlchemicaHeadCrop:
         x1, y1, x2, y2 = [float(v) for v in f.bbox]
         w, h = x2 - x1, y2 - y1
         H, W = image.shape[1], image.shape[2]
-        a = max(0, int(x1 - side_margin * w)); b = min(W, int(x2 + side_margin * w))
-        c = max(0, int(y1 - hair_margin * h)); d = min(H, int(y2 + below_chin * h))
+        a = max(0, int(x1 - side_margin * w))
+        b = min(W, int(x2 + side_margin * w))
+        c = max(0, int(y1 - hair_margin * h))
+        d = min(H, int(y2 + below_chin * h))
         out = image[:, c:d, a:b, :]
         m = vuota.clone()
         m[:, c:d, a:b] = 1.0

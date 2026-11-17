@@ -87,9 +87,11 @@ def schedule_from_density(sig, dens, n, s_max=1.0):
     sig, dens = sig[order], dens[order]
     # aggiunge gli estremi
     if float(sig[0]) < s_max:
-        sig = torch.cat([torch.tensor([s_max], dtype=torch.float64), sig]); dens = torch.cat([dens[:1], dens])
+        sig = torch.cat([torch.tensor([s_max], dtype=torch.float64), sig])
+        dens = torch.cat([dens[:1], dens])
     if float(sig[-1]) > 0.0:
-        sig = torch.cat([sig, torch.zeros(1, dtype=torch.float64)]); dens = torch.cat([dens, dens[-1:]])
+        sig = torch.cat([sig, torch.zeros(1, dtype=torch.float64)])
+        dens = torch.cat([dens, dens[-1:]])
     ds = (sig[:-1] - sig[1:]).clamp_min(0)
     cum = torch.cat([torch.zeros(1, dtype=torch.float64), torch.cumsum(0.5 * (dens[:-1] + dens[1:]) * ds, 0)])
     cum = cum / cum[-1]
