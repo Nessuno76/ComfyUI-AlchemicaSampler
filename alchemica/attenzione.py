@@ -308,8 +308,8 @@ def applica(model, negativo=None, nag_scala=0.0, nag_tau=2.5, nag_alpha=0.25, na
         m.add_wrapper_with_key(comfy.patcher_extension.WrappersMP.DIFFUSION_MODEL, chiave,
                                nag_wrapper(cn, float(nag_scala), float(nag_tau), float(nag_alpha),
                                            float(sigma_hi), float(sigma_lo), parse_blocchi(nag_blocchi)))
-        note.append(f"NAG scala {nag_scala} tau {nag_tau} alpha {nag_alpha} sigma {sigma_hi}->{sigma_lo} "
-                    f"({len(parse_blocchi(nag_blocchi))} blocchi, {cn.shape[1]} token negativi)")
+        note.append(f"NAG scale {nag_scala} tau {nag_tau} alpha {nag_alpha} sigma {sigma_hi}->{sigma_lo} "
+                    f"({len(parse_blocchi(nag_blocchi))} blocks, {cn.shape[1]} negative tokens)")
     elif nag_scala > 0:
         note.append("NAG requested but no negative connected: off")
     if pert_modo in ("SEG", "PAG") and pert_scala != 0:
@@ -319,7 +319,7 @@ def applica(model, negativo=None, nag_scala=0.0, nag_tau=2.5, nag_alpha=0.25, na
         m.set_model_attn1_output_patch(p2)
         m.set_model_sampler_post_cfg_function(post_cfg_perturbata(float(pert_scala), float(pert_sigma_hi),
                                                                   float(pert_sigma_lo)))
-        note.append(f"{pert_modo} scala {pert_scala} blocchi {pert_blocchi}"
-                    + (f" sigma sfocatura {seg_sigma}" if pert_modo == "SEG" else "")
-                    + f" finestra {pert_sigma_hi}->{pert_sigma_lo}")
+        note.append(f"{pert_modo} scale {pert_scala} blocks {pert_blocchi}"
+                    + (f" blur sigma {seg_sigma}" if pert_modo == "SEG" else "")
+                    + f" window {pert_sigma_hi}->{pert_sigma_lo}")
     return m, note

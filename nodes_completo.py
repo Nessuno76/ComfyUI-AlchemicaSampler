@@ -211,10 +211,10 @@ def _handoff(model):
         nome = schedules.match_profile(taratura.fingerprint(model), None, taratura.fingerprint2(model))
         v = (schedules.load_profile(nome) or {}).get("consigli", {}).get("handoff_sigma") if nome else None
         if v:
-            return float(v), f"profilo '{nome}'"
+            return float(v), f"profile '{nome}'"
     except Exception:
         pass
-    return 0.87, "ripiego: nessun profilo"
+    return 0.87, "fallback: no profile"
 
 
 NODE_CLASS_MAPPINGS = {

@@ -17,6 +17,11 @@ FaceDetailer né upscale a piastrelle.
 4. Ordine d'uso: `KREA2_TARATURA.json` → `KREA2_COMPLETO.json` (o `KREA2_SEMPLICE.json`)
 5. **Per iniziare**: `KreaAlchemicaMente_K2AM.json`, la pipeline lineare essenziale Carica → LoRA → Prompt → KSampler Flex (calibrazione v2, due stadi, DeGrid) → Salva, in quattro gruppi colorati con una guida rapida
 
+**Da dove partire (1.1.1)**: `ALCHEMICA_T2I` (scrivi un'idea, *Queue*) e `ALCHEMICA_I2I` (carica una foto, *Queue*,
+trascina il cursore prima / dopo). **Diverso, non migliore**: a pari seed la ricetta Alchemica dà *un'altra*
+immagine rispetto al KSampler di ComfyUI, non per forza una migliore. Lo stesso KSampler Flex torna al
+campionamento standard con `euler` + `simple` e `two_stage` spento.
+
 **Confronto onesto**: `KREA2_CONFRONTO_ONESTO.json` fa passare lo stesso prompt, lo stesso seed e la stessa dimensione dal KSampler nativo (A), dallo stesso Euler con la sola spaziatura calibrata (B) e dalla ricetta completa (C), con NAG spento. Nel [README](README.md) trovi tre prove con le differenze descritte senza ritocchi: B resta sulla scena di A, C cambia la scena ed è la più dettagliata ma più lenta. Rilancialo con il tuo prompt prima di decidere.
 
 **NVFP4 su RTX 5070 Ti**: serve PyTorch compilato per **CUDA 13.0 (cu130)**, altrimenti il
@@ -93,7 +98,7 @@ basse frequenze alle alte. Sul modello vero la conferma va fatta con il workflow
 | ⚗ Alchemica · Guida (CFG) | cfg dipendente da σ |
 | ⚗ Alchemica · Due stadi | scala del primo stadio, σ di passaggio, step, upscale |
 | ⚗ Alchemica · Sigmas / Sampler (SAMPLER) | per usare pezzi di Alchemica in `SamplerCustom` |
-| **⚗ Alchemica LoRA Stack+** | quante LoRA vuoi (➕ *Add LoRA*), forza reale su ogni riga (±2 con frecce e trascinamento, fino a ±5 scritta a mano), selettore con anteprime, modello base e striscia delle LoRA attive; scheda per LoRA con trigger word (`T` verde = aggiunte da sole al ⚗ Prompt), peso consigliato e ricerca su Civitai; dopo l'esecuzione segnala le LoRA che non agganciano nessun layer del modello; anteprima mancante: clic sul riquadro, trascina un'immagine o usa l'ultima generata. Il vecchio nodo da 6 resta per i workflow salvati (tasto destro → *Upgrade*) |
+| **⚗ Alchemica LoRA Stack+** | quante LoRA vuoi (➕ *Add LoRA*), forza reale su ogni riga (±2 con frecce e trascinamento, fino a ±5 scritta a mano), ▲ ▼ accanto al nome per passare alla LoRA precedente/successiva senza aprire la lista, selettore con anteprime, modello base e striscia delle LoRA attive; scheda per LoRA con trigger word (`T` verde = aggiunte da sole al ⚗ Prompt), peso consigliato e ricerca su Civitai; dopo l'esecuzione segnala le LoRA che non agganciano nessun layer del modello; anteprima mancante: clic sul riquadro, trascina un'immagine o usa l'ultima generata. Il vecchio nodo da 6 resta per i workflow salvati (tasto destro → *Upgrade*) |
 | ⚗ Alchemica · Risoluzione | latente Krea 2 da aspetto + megapixel |
 
 ## 5. Preset

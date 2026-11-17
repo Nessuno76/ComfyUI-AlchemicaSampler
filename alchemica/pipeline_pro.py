@@ -26,7 +26,7 @@ import torch
 import comfy.sample
 import comfy.utils
 
-from . import schedules
+from . import famiglia, schedules
 from .fasi import make_guider_fasi
 from .noise import contract_noise
 from .pipeline import guardia_duplicati, nota_dettaglio, _even, _fix_latent, _sample, resolve_auto
@@ -51,11 +51,12 @@ def noise_downscaled(noise, h, w):
 def run_pro(model, positive, negative, latent_dict, seed, cfg, denoise=1.0, model2=None,
             positive_dett=None, cambio=-1.0, sfumatura=0.0, anteprime=0):
     ms = model.get_model_object("model_sampling")
+    px, fam = famiglia.fattore(model), famiglia.di(model)
     cfg, auto_notes = resolve_auto(dict(cfg))
     latent = _fix_latent(model, latent_dict)
     is_empty = torch.count_nonzero(latent) == 0
     report = [("auto: " + ", ".join(auto_notes))] if auto_notes else []
-    guardia = guardia_duplicati(cfg, latent, is_empty, denoise)    # before the guiders: it can lower the hand-off
+    guardia = guardia_duplicati(cfg, latent, is_empty, denoise, px, fam)    # before the guiders: it can lower the hand-off
 
     # --- cambio di fase: -1 = sigma di passaggio misurata (composizione bloccata)
     if positive_dett is not None:
@@ -105,7 +106,7 @@ def run_pro(model, positive, negative, latent_dict, seed, cfg, denoise=1.0, mode
             n2 = noise_downscaled(comfy.sample.prepare_noise(full, s2k, None), h1, w1)
             outs.append(_sample(model2 or model, guider2, cfg, x1, n2, s2, s2k, None, stats))
             report.append(f"preview #{k}  seed {sk}")
-        report.insert(0, f"PREVIEWS: {anteprime} images at {w1 * 8}x{h1 * 8}px (stage 1 identical to the final, "
+        report.insert(0, f"PREVIEWS: {anteprime} images at {w1 * px}x{h1 * px}px (stage 1 identical to the final, "
                          f"stage 2 redone small). To complete one: previews = 0, choice = the preview "
                          f"number (same base seed).")
         report.append(f"model calls: {stats['nfe']}  total time: {time.perf_counter() - t0:.1f}s")
@@ -134,9 +135,9 @@ def run_pro(model, positive, negative, latent_dict, seed, cfg, denoise=1.0, mode
         samples = _sample(model2 or model, guider2, cfg, up, noise2, s2, seed2, None, stats)
         t2 = time.perf_counter() - t2
         report += [
-            f"STAGE 1  {w1 * 8}x{h1 * 8}px  {len(s1) - 1} steps  {t1:.1f}s  seed {seed}  sigma: "
+            f"STAGE 1  {w1 * px}x{h1 * px}px  {len(s1) - 1} steps  {t1:.1f}s  seed {seed}  sigma: "
             + " ".join(f"{v:.3f}" for v in s1.tolist()),
-            f"STAGE 2  {W * 8}x{H * 8}px  {len(s2) - 1} steps  {t2:.1f}s  seed {seed2}  sigma: "
+            f"STAGE 2  {W * px}x{H * px}px  {len(s2) - 1} steps  {t2:.1f}s  seed {seed2}  sigma: "
             + " ".join(f"{v:.3f}" for v in s2.tolist()),
         ]
         if model2 is not None:
@@ -151,7 +152,7 @@ def run_pro(model, positive, negative, latent_dict, seed, cfg, denoise=1.0, mode
         noise = contract_noise(noise, cfg["contraction"])
         samples = _sample(model, guider, cfg, latent, noise, sig, seed,
                           latent_dict.get("noise_mask", None), stats)
-        report.append(f"SINGLE STAGE  {W * 8}x{H * 8}px  {len(sig) - 1} steps  sigma: "
+        report.append(f"SINGLE STAGE  {W * px}x{H * px}px  {len(sig) - 1} steps  sigma: "
                       + " ".join(f"{v:.3f}" for v in sig.tolist()))
         plots = [("single stage", sig)]
         final_sigmas = sig

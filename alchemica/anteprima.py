@@ -89,6 +89,11 @@ def risultato(tupla, vae, latent, degrid=0.0):
     """Appends the decoded image to the node's outputs and, with a VAE, shows it in the node.
     degrid > 0: the 2-pixel VAE grid is removed from that image (alchemica/degrid.py)."""
     img = decodifica(vae, latent)
+    if img is not None and float(degrid) > 0.0 and int(getattr(vae, "latent_dim", 3) or 3) != 3:
+        # 1.2: the grid is a trait of the Qwen-Image / Wan VAE used by Krea 2 (a 3D video VAE). The FLUX.2 VAE of
+        # MOSS-Image (2D) does not leave it: filtering there would only soften real detail
+        print(f"[Alchemica] DeGrid skipped: this VAE ({vae.latent_channels} channels, 2D) has no 2-pixel grid")
+        degrid = 0.0
     if img is not None and float(degrid) > 0.0:
         from .degrid import degrid as _degrid
         img, cambio = _degrid(img, degrid)

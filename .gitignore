@@ -4,3 +4,16 @@ profili/
 .vscode/
 BRIEF_*.md
 .tracking
+# local backups and notes, never published
+*.bak*
+_LOCALE_*.md
+# new-person tools and 3D mannequin: still in the lab, not published yet
+manichino3d.py
+nodes_corpo.py
+nodes_dettagli.py
+nodes_guida.py
+nodes_modello.py
+web/alchemica_corpo.js
+web/manichino/
+web/manichino_editor*/
+web/manichino_panel_codex.js

@@ -2,7 +2,8 @@
 // Copyright (C) 2026 AlchemicaMente — idea, direction and testing. Code written by Claude (Anthropic).
 // SPDX-License-Identifier: GPL-3.0-only
 //
-// One row per LoRA:  ● on/off · name (click = picker with thumbnails) · ◀ strength ▶ · [txt ◀ strength ▶] · ✕
+// One row per LoRA:  ● on/off · name (click = picker with thumbnails) · ▲ ▼ (previous / next LoRA of the list)
+//                    · ◀ strength ▶ · [txt ◀ strength ▶] · ✕
 // ➕ Add LoRA adds a row. All the rows are saved in the hidden widget 'loras' (JSON), so the number of rows can
 // change freely without shifting any saved value. The strip under the rows shows the previews of the active LoRAs:
 // click an empty box to pick an image, drop an image on the node, or use the last generated image (right-click menu).
@@ -13,6 +14,7 @@
 
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
+import { piuViste } from "./alchemica_testo.js";
 
 const NODO = "AlchemicaLoraStackPlus";
 const VECCHI = { AlchemicaLoraLoader: ["lora_", "strength_", "strength_clip", "pass_"],
@@ -194,7 +196,7 @@ function numero(ctx, x, y, w, h, v, etichetta, spento) {
 // Each row has its OWN name: Nodes 2.0 (Vue) binds a drawn widget to the node by name, so rows all called
 // "lora_row" were all drawn as the first one. The rows are rebuilt at every change, so the index stays right.
 function rigaWidget(node, k) {
-    return {
+    return piuViste({
         name: `lora_row_${k}`, type: "alchemica_lora_row", value: "", serialize: false, options: { serialize: false },
         _idx: k,
         draw(ctx, n, larghezza, y) {
@@ -253,6 +255,17 @@ function rigaWidget(node, k) {
                     xr -= bw + 4;
                 }
             }
+            // ▲ ▼: previous / next LoRA of the list (same order as the picker), without opening it
+            if (Lista.voci.length) {
+                const k = Lista.voci.findIndex((v) => v.name === s.lora);
+                ctx.textAlign = "center";
+                ctx.fillStyle = k > 0 ? col("WIDGET_SECONDARY_TEXT_COLOR", "#999") : "#555";
+                ctx.fillText("▲", xr - 25, y + h / 2);
+                ctx.fillStyle = k < Lista.voci.length - 1 ? col("WIDGET_SECONDARY_TEXT_COLOR", "#999") : "#555";
+                ctx.fillText("▼", xr - 9, y + h / 2);
+                zone.prev = [xr - 34, xr - 17]; zone.next = [xr - 17, xr];
+                xr -= 36;
+            }
             // name
             const manca = !vuota && !esiste(s.lora);
             const rotta = n._alcStato?.[s.lora]?.ok === false;
@@ -275,6 +288,7 @@ function rigaWidget(node, k) {
                 if (dentro(z.on)) { s.on = !s.on; scrivi(n); return true; }
                 if (dentro(z.del)) { togli(n, this._i); return true; }
                 if (dentro(z.trig) || dentro(z.badge)) { apriScheda(n, this._i); return true; }
+                if (dentro(z.prev) || dentro(z.next)) { scorri(n, this._i, dentro(z.next) ? 1 : -1); return true; }
                 if (dentro(z.name)) { apriSelettore(n, this._i, e); return true; }
                 for (const [chiave, campo] of [["", "strength"], ["t", "strength_clip"]]) {
                     if (dentro(z[chiave + "dec"]) || dentro(z[chiave + "inc"])) {
@@ -312,7 +326,7 @@ function rigaWidget(node, k) {
             }
             return false;
         },
-    };
+    });
 }
 
 function chiediValore(node, s, campo, e) {
@@ -370,7 +384,7 @@ function lato(node, larghezza) {
     return Math.max(44, Math.min(96, Math.floor((larghezza - 2 * MARG - 6 * (n - 1)) / n)));
 }
 function stripWidget(node) {
-    return {
+    return piuViste({
         name: STRIP, type: "alchemica_lora_previews", value: "", serialize: false, options: { serialize: false },
         draw(ctx, n, larghezza, y) {
             this._y = y; this._box = [];
@@ -419,7 +433,7 @@ function stripWidget(node) {
             else scegliFile(b.nome, n);
             return true;
         },
-    };
+    });
 }
 
 // ------------------------------------------------------------------ the LoRA card
@@ -505,7 +519,7 @@ async function apriScheda(node, indice) {
         const colBase = d.krea2 === "ok" ? "#7fd17f" : d.krea2 === "no" ? "#ffa53d" : "inherit";
         riga("Base model", d.base_model ? `${d.base_model}  (${d.base_source})` : "unknown", colBase);
         if (d.krea2 === "no") dx.appendChild(el("div", { color: "#ffa53d", fontSize: "12px" },
-            "Looks made for another model: on Krea 2 it may hook no layer (the node tells you after a run)."));
+            "Looks made for another model (not Krea 2): it may hook no layer (the node tells you after a run)."));
         const st = node._alcStato?.[nome];
         if (st) riga("Last run", `${st.layers} layers of ${st.model} hooked` + (st.modules ? ` (LoRA has ${st.modules})` : ""),
                      st.ok ? "#7fd17f" : "#ff6b6b");
@@ -586,10 +600,34 @@ async function apriScheda(node, indice) {
     disegna(await infoFresca(nome, node) ?? Info.get(nome));
 }
 
-// a newly chosen LoRA starts from its recommended strength and its trigger words
+// set the LoRA of a row (picker or ▲ ▼): a new one starts from its recommended strength and trigger words
+function impostaLora(node, indice, nome) {
+    const s = slots(node)[indice];
+    if (!s) return;
+    const nuova = s.lora !== nome;
+    s.lora = nome;
+    if (nome !== NESSUNA) s.on = true;
+    if (nuova) { s.trigger_words = ""; s.triggers_on = false; delete node._alcStato?.[nome]; }
+    scrivi(node);
+    aggiornaAspetto(node);
+    if (nuova && nome !== NESSUNA) precompila(node, s);
+}
+
+// ▲ ▼ on the row: previous / next LoRA in the picker order (an empty row starts from the first / last one)
+async function scorri(node, indice, verso) {
+    if (!Lista.voci.length) await caricaLista();
+    const s = slots(node)[indice], n = Lista.voci.length;
+    if (!s || !n) return;
+    const k = Lista.voci.findIndex((v) => v.name === s.lora);
+    const j = k < 0 ? (verso > 0 ? 0 : n - 1) : k + verso;
+    if (j < 0 || j >= n) return;
+    impostaLora(node, indice, Lista.voci[j].name);
+}
+
 async function precompila(node, s) {
-    const d = await infoFresca(s.lora, node);
-    if (!d?.exists) return;
+    const nome = s.lora;
+    const d = await infoFresca(nome, node);
+    if (!d?.exists || s.lora !== nome) return;       // the row moved on (fast ▲ ▼): a late answer must not win
     if (d.recommended_strength != null) s.strength = s.strength_clip = tondo(limita(d.recommended_strength, HARD));
     s.trigger_words = (d.trigger_words ?? []).join(", ");
     s.triggers_on = !!s.trigger_words && !String(d.trigger_source).includes("guess");
@@ -685,16 +723,7 @@ async function apriSelettore(node, indice, e) {
         righe[sel]?.el.scrollIntoView({ block: "nearest" });
         mostraLato(righe[sel]?.v);
     };
-    const scegli = (v) => {
-        const s = slots(node)[indice];
-        const nuova = s && s.lora !== v.name;
-        if (s) { s.lora = v.name; if (v.name !== NESSUNA) s.on = true; }
-        if (s && nuova) { s.trigger_words = ""; s.triggers_on = false; delete node._alcStato?.[v.name]; }
-        chiudiPopup();
-        scrivi(node);
-        aggiornaAspetto(node);
-        if (s && nuova && v.name !== NESSUNA) precompila(node, s);
-    };
+    const scegli = (v) => { chiudiPopup(); impostaLora(node, indice, v.name); };
     const filtra = () => {
         const parole = cerca.value.toLowerCase().split(/\s+/).filter(Boolean);
         const voci = [{ name: NESSUNA, preview: false }, ...Lista.voci]

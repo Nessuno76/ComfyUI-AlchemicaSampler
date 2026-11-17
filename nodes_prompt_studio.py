@@ -19,7 +19,7 @@ import math
 
 import torch
 
-from .alchemica import attenzione, frasi, inquadrature as inq, liste, llm, testo
+from .alchemica import attenzione, famiglia, frasi, inquadrature as inq, liste, llm, testo
 from .nodes import ASPECTS, QUALSIASI as ANY, _f, _i
 from .nodes_completo import _handoff
 from .nodes_v2 import CAT_COND, SKIN, STYLE
@@ -73,8 +73,8 @@ class AlchemicaPromptStudio:
             "seed": ("INT", {"default": 0, "min": 0, "max": SEED_MAX, "control_after_generate": True,
                      "tooltip": "Picks the wildcard options, and the LLM variation when creativity > 0"}),
             "style": (list(STYLE.values()), {"default": STYLE["foto realistica"]}),
-            "use_ollama": ("BOOLEAN", {"default": False, "label_on": "Ollama", "label_off": "Krea 2 text encoder",
-                           "tooltip": "Who writes the prompt. Off = Krea 2's own text encoder (no server, sees images). "
+            "use_ollama": ("BOOLEAN", {"default": False, "label_on": "Ollama", "label_off": "own text encoder",
+                           "tooltip": "Who writes the prompt. Off = Krea 2's own text encoder (Qwen3-VL, no server). "
                                       "On = a model served by Ollama (needs 'ollama serve')"}),
             "ollama_model": (ollama, {"default": ollama[0],
                              "tooltip": "Installed Ollama models (press R to refresh). For images use a vision model "
@@ -138,14 +138,15 @@ class AlchemicaPromptStudio:
                            "Frames 16:9 and wider (19:9, 21:9) invite copies of the subject. 'one subject': the scene "
                            "says there is only one person and the background fills the sides, plus negatives against "
                            "copies. 'free': nothing added (e.g. you want a group)"}),
-            # 2026-10-23, LAST widget (saved workflows match widget values by position): opening phrase
+        }
+        opt = {
+            # 2026-10-23, OPTIONAL and the LAST widget (saved workflows match widget values by
+            # position; optional so a workflow queued from a page loaded before this widget existed still runs): opening phrase
             "phrase": (frasi.nomi(), {"default": frasi.AUTO, "tooltip":
                        "A sentence in front of every prompt, as the authors of some fine-tunes recommend (e.g. 'This "
                        "is a casual, low-quality photo' for a model trained on amateur photos). (auto from model) "
                        "picks the phrase whose 'match' is in the checkpoint file name, nothing if none matches. "
                        "Edit the list with '✎ phrases…' (saved in ComfyUI/user/alchemica/phrases.txt)"}),
-        }
-        opt = {
             # sockets only (no widget values): their order can change without touching saved workflows
             "vae": ("VAE", {"tooltip": "Passes through to the sampler (preview and final image in the node)"}),
             "latent": ("LATENT", {"tooltip": "Optional: e.g. a VAE-encoded photo for img2img. Empty = built here"}),
@@ -189,14 +190,18 @@ class AlchemicaPromptStudio:
         return clip.encode_from_tokens_scheduled(clip.tokenize(t))
 
     @staticmethod
-    def _latente(aspect, megapixels, batch_size):
+    def _latente(aspect, megapixels, batch_size, model=None):
+        """Empty start latent in the model's own format: Krea 2 = 16 ch at /8, MOSS-Image (FLUX.2) = 128 ch at /16.
+        Sides are multiples of 16 px for both (MOSS-Image requires it)."""
         import comfy.model_management
+        canali, f = famiglia.formato_latente(model) if model is not None else (16, 8)
         a, b = ASPECTS[aspect]
         s = math.sqrt(megapixels * 1024 * 1024 / (a * b))
-        w = max(256, int(round(a * s / 16)) * 16)
-        h = max(256, int(round(b * s / 16)) * 16)
-        lat = torch.zeros([int(batch_size), 16, h // 8, w // 8], device=comfy.model_management.intermediate_device())
-        return {"samples": lat}, w, h
+        passo = max(16, f)
+        w = max(256, int(round(a * s / passo)) * passo)
+        h = max(256, int(round(b * s / passo)) * passo)
+        lat = torch.zeros([int(batch_size), canali, h // f, w // f], device=comfy.model_management.intermediate_device())
+        return {"samples": lat, "downscale_ratio_spacial": f}, w, h
 
     def componi(self, model, clip, mode, text, detail, negative, text_as, line, example, seed, style,
                 use_ollama, ollama_model, ollama_url, unload_ollama, show_llm_options, words, creativity, skin,
@@ -208,6 +213,13 @@ class AlchemicaPromptStudio:
                 vae=None, image=None, text_in=None, latent=None, **passa):
         rep, scelte = [], []
         soggetto, extra_comp, larga_comp = "", [], ""
+        fam = famiglia.di(model)
+        nome_mod = famiglia.nome(fam)
+        nag_ok = famiglia.nag_possibile(model)
+        fam_clip = famiglia.di_clip(clip)
+        if fam_clip != famiglia.ALTRO and fam != famiglia.ALTRO and fam_clip != fam:
+            raise ValueError(f"Alchemica Prompt: the model is {nome_mod} but the text encoder is "
+                             f"{famiglia.nome(fam_clip)}'s. Use ⚗ Load Model, it pairs them automatically.")
 
         # 1) the source text
         if mode == "from list":
@@ -253,10 +265,11 @@ class AlchemicaPromptStudio:
         if latent is not None:
             lat = latent
             s = latent["samples"]
-            w, h = s.shape[-1] * 8, s.shape[-2] * 8
+            f = int(latent.get("downscale_ratio_spacial") or famiglia.fattore(model))
+            w, h = s.shape[-1] * f, s.shape[-2] * f
             rep.append(f"latent: from the input ({w}x{h})")
         else:
-            lat, w, h = self._latente(aspect, megapixels, batch_size)
+            lat, w, h = self._latente(aspect, megapixels, batch_size, model)
             rep.append(f"latent: {w}x{h} ({aspect}, {megapixels} MP, batch {batch_size})")
         largo = w >= inq.LARGO * h and (wide_frame or WIDE[0]) == WIDE[0]
 
@@ -280,7 +293,7 @@ class AlchemicaPromptStudio:
                                            inq.regola_look(look) if look else "",
                                            "WIDE FRAME: " + inq.frase_larga((inq.BACKGROUNDS.get(background) or ("",))[0])
                                            + "." if largo else "") if x)
-            sistema = testo.sistema(stile, words, pelle, regole)
+            sistema = testo.sistema(stile, words, pelle, regole, modello=fam)
             utente = testo.utente(src, img is not None, come, testo.descrivi_formato(w, h))
             backend = "ollama" if use_ollama else "krea2"
             grezzo, cache = llm.scrivi(backend, sistema, utente, img, creativity, seed, max_tokens, clip=clip,
@@ -289,7 +302,7 @@ class AlchemicaPromptStudio:
             extra = liste.espandi(negative, seed, salt + 2, scelte).strip()
             if extra:
                 neg = testo.unisci_negativo(neg, extra)
-            chi = f"Ollama {ollama_model}" if use_ollama else "Krea 2 text encoder"
+            chi = f"Ollama {ollama_model}" if use_ollama else f"{nome_mod} text encoder"
             rep.append(f"{'improved' if come == 'migliora' else 'written'} by {chi}"
                        + (" (cached)" if cache else "") + f" · style {style} · skin {skin}"
                        + (f" · creativity {creativity} · seed {seed}" if creativity > 0 else " · deterministic"))
@@ -389,6 +402,9 @@ class AlchemicaPromptStudio:
                 ct = ", ".join(mancanti) + ", " + ct
             composizione = self._enc(clip, ct)
             rep.append("COMPOSITION (first steps, until the hand-off; then the full text): " + ct)
+        neg, via = testo.togli_neg_scritte(neg, prompt)
+        if via:
+            rep.append("removed from the negative, the prompt asks for written text: " + ", ".join(via))
         negative_c = self._enc(clip, neg or " ")
         rep += [f"SCENE ({len(sc.split())} words): {sc}", f"DETAIL ({len(dett.split())} words): {dett}",
                 f"NEGATIVE: {neg}"]
@@ -396,6 +412,11 @@ class AlchemicaPromptStudio:
         # 5) attention guidance
         m = model
         doppio = None
+        if attention_guidance and not nag_ok:
+            # NAG / SEG / PAG re-implement Krea 2's own blocks: on another model the negative works through cfg
+            attention_guidance = False
+            rep.append(f"NAG / structure guidance: Krea 2 only, skipped on {nome_mod}. The negative goes to the "
+                       f"sampler and works through cfg (cfg > 1)")
         if frase and shot_lock:
             if attention_guidance and nag_sigma_start < 0 and neg_inq and neg_inq != neg:
                 # the first steps decide the framing: there NAG pushes away from the framing negatives ONLY. The full
@@ -408,7 +429,7 @@ class AlchemicaPromptStudio:
             elif attention_guidance and nag_sigma_start < 0:
                 nag_sigma_start = 1.0
                 rep.append("shot strict: NAG from the first step (sigma 1.0), where the framing is decided")
-            elif not attention_guidance and preset and preset[3]:
+            elif not attention_guidance and nag_ok and preset and preset[3]:
                 rep.append("shot strict: NAG is off, so the framing negatives do nothing at cfg 1 (turn NAG on)")
         if attention_guidance:
             note = []

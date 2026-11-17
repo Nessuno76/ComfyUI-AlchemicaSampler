@@ -54,6 +54,28 @@ def _model_mu(ms, cfg):
     return so if so > 0 else float(getattr(ms, "shift", 1.15))
 
 
+def _shift_esponenziale(ms):
+    """True for ModelSamplingFlux (Krea 2, Flux): there 'shift' is mu and the factor is e^mu. ModelSamplingDiscreteFlow
+    (MOSS-Image, SD3, Qwen-Image...) stores the factor itself (MOSS: 5). 1.2 fix, 2026-11-17: reading MOSS's 5 as mu
+    gave a factor of 148 and a schedule stuck at sigma 1.0 for 24 steps of 25."""
+    try:
+        import comfy.model_sampling as cms
+        if isinstance(ms, cms.ModelSamplingFlux):
+            return True
+        if isinstance(ms, cms.ModelSamplingDiscreteFlow):
+            return False
+    except Exception:
+        pass
+    return "flux" in " ".join(c.__name__.lower() for c in type(ms).__mro__)
+
+
+def _model_alfa(ms, cfg):
+    """Flow shift FACTOR a of sigma = a*t / (1 + (a-1)*t), in the units of the model's own sampling.
+    The 'shift' override is read in the same units as the model's (Krea 2: mu like 1.15, MOSS: factor like 5)."""
+    v = _model_mu(ms, cfg)
+    return math.exp(v) if _shift_esponenziale(ms) else max(1e-6, v)
+
+
 # ---------------------------------------------------------------- densita' -> sigma
 
 def schedule_from_density(sig, dens, n, s_max=1.0):
@@ -82,10 +104,10 @@ def schedule_from_density(sig, dens, n, s_max=1.0):
 
 # ---------------------------------------------------------------- scheduler
 
-def duale_density(s, cfg, mu):
-    """Base: la densita' dello shift di flusso del modello (uniforme in t), dt/ds.
+def duale_density(s, cfg, a):
+    """Base: la densita' dello shift di flusso del modello (uniforme in t), dt/ds. a = fattore di shift (_model_alfa).
     Sopra: due lobi. A = composizione (sigma alte), B = dettaglio (sigma basse)."""
-    a = math.exp(mu)
+    a = float(a)
     base = a / (a - (a - 1.0) * s) ** 2
     A = float(cfg.get("duale_alto", 1.0))
     wA = max(1e-3, float(cfg.get("duale_ampiezza_alto", 0.10)))
@@ -99,7 +121,7 @@ def alchemica_duale(ms, steps, cfg):
     """Scheduler analitico Alchemica: lo shift del modello + due lobi regolabili.
     Con A=B=0 coincide con flux_shift/sgm_uniform."""
     s = torch.linspace(0, 1, 4001, dtype=torch.float64)
-    return schedule_from_density(s, duale_density(s, cfg, _model_mu(ms, cfg)), steps, _sigma_max(ms))
+    return schedule_from_density(s, duale_density(s, cfg, _model_alfa(ms, cfg)), steps, _sigma_max(ms))
 
 
 # ---- calibration v2 (2026-10-10): solver-order law, log-SNR smoothing, own curves for the half-resolution stage
@@ -191,7 +213,7 @@ def alchemica_tarato(ms, steps, cfg):
 @register_scheduler("flux_shift")
 def flux_shift(ms, steps, cfg):
     """Griglia uniforme in t con sigma = a*t/(1+(a-1)*t), a = e^mu (q=1 -> sgm_uniform)."""
-    a = math.exp(_model_mu(ms, cfg))
+    a = _model_alfa(ms, cfg)
     q = float(cfg.get("flux_q", 1.0))
     n = int(steps)
     t_lo = 1.0 / 10000.0

@@ -25,7 +25,7 @@ sulla pelle, niente negazioni nel positivo, ottica coerente.
 """
 import re
 
-SISTEMA = """You write prompts for Krea 2, a photorealistic text-to-image model. The user gives an idea (often in Italian, sometimes with a reference image). Reply in English with EXACTLY three labeled lines and nothing else:
+SISTEMA = """You write prompts for {modello}. The user gives an idea (often in Italian, sometimes with a reference image). Reply in English with EXACTLY three labeled lines and nothing else:
 
 SCENE: <one paragraph, {scena_parole} words>
 DETAIL: <one paragraph, {dett_parole} words>
@@ -89,8 +89,19 @@ VIETATE = ["droplet", "droplets", "bead", "beads", "beaded", "glistening", "dewy
            "sweat", "wet skin", "damp skin", "glossy skin", "imperfection", "imperfections", "blemish", "blemishes"]
 
 
-def sistema(stile="foto realistica", parole=80, pelle=PELLE_DEFAULT, istruzioni=""):
-    """System prompt (same rules for every backend: Krea 2 text encoder or Ollama)."""
+# 1.2: what changes in the rules with the model family (the rest is shared)
+REGOLE_MODELLO = {
+    # MOSS-Image renders text very well, but only the words written inside double quotes, verbatim
+    "moss_image": "- Visible writing (signs, labels, posters, screens) goes inside double quotes, verbatim and short, "
+                  "with where it is and its lettering style.\n",
+}
+NOMI_MODELLO = {"krea2": "Krea 2, a photorealistic text-to-image model",
+                "moss_image": "MOSS-Image, a photorealistic text-to-image model"}
+
+
+def sistema(stile="foto realistica", parole=80, pelle=PELLE_DEFAULT, istruzioni="", modello="krea2"):
+    """System prompt (same rules for every backend: the model's own text encoder or Ollama).
+    modello: family from alchemica.famiglia ('krea2', 'moss_image', 'other')."""
     scena_parole = f"{max(30, int(parole * 0.7))} to {max(40, int(parole))}"
     # il DETTAGLIO ora porta anche l'anatomia: un po' piu' di spazio (era 0.25-0.4)
     dett_parole = f"{max(20, int(parole * 0.3))} to {max(35, int(parole * 0.5))}"
@@ -99,7 +110,8 @@ def sistema(stile="foto realistica", parole=80, pelle=PELLE_DEFAULT, istruzioni=
     extra = ("\n\nAdditional instructions from the user. Follow them; when they conflict with the rules above, "
              "these win:\n" + istruzioni) if istruzioni else ""
     return SISTEMA.format(scena_parole=scena_parole, dett_parole=dett_parole, pelle=p_dett,
-                          regola_pelle=p_regola, stile=STILI.get(stile, ""), extra=extra)
+                          regola_pelle=p_regola + REGOLE_MODELLO.get(modello, ""), stile=STILI.get(stile, ""),
+                          extra=extra, modello=NOMI_MODELLO.get(modello, "a photorealistic text-to-image model"))
 
 
 def utente(idea, con_immagine, modo="idea", formato=""):
@@ -153,15 +165,17 @@ _ETICHETTE = {"scene": "scena", "scena": "scena", "detail": "dettaglio", "detail
 
 
 def analizza(testo):
-    """Estrae SCENE/DETAIL/NEGATIVE; tollera markdown, grassetti e righe a capo."""
+    """Estrae SCENE/DETAIL/NEGATIVE; tollera markdown, grassetti e righe a capo.
+    2026-10-26: anche l'etichetta da sola sulla riga, senza due punti ("SCENE" a capo il testo): i modelli piccoli
+    di Ollama la scrivono cosi' e tutto (DETAIL e NEGATIVE compresi) finiva nella scena."""
     t = testo.replace("**", "").replace("__", "")
     parti = {"scena": "", "dettaglio": "", "negativo": ""}
     corrente = None
     for riga in t.splitlines():
-        m = re.match(r"^\s*[#>*\-\s]*([A-Za-z]+)\s*[:：]\s*(.*)$", riga)
+        m = re.match(r"^\s*[#>*\-\s]*([A-Za-z]+)\s*(?:[:：]\s*(.*)|$)", riga)
         if m and m.group(1).lower() in _ETICHETTE:
             corrente = _ETICHETTE[m.group(1).lower()]
-            parti[corrente] = m.group(2).strip()
+            parti[corrente] = (m.group(2) or "").strip()
         elif corrente and riga.strip():
             parti[corrente] = (parti[corrente] + " " + riga.strip()).strip()
     if not parti["scena"]:
@@ -188,6 +202,47 @@ def ripulisci(testo, parole=VIETATE):
     out = " ".join(tenuti).strip()
     out = re.sub(r"[,;]\s*$", ".", out)
     return out, tolti
+
+
+NEG_MAX_VOCI = 24
+
+
+def limita_negativo(voci, massimo=NEG_MAX_VOCI):
+    """1.2 (2026-11-17): Qwen3.5 (MOSS-Image's encoder) at creativity 0 can loop in the negative: 'soft light, soft
+    skin, soft jeans, soft jacket...' (80+ items, with 'portrait' and 'bokeh' inside). With a real cfg that list pushes
+    against the picture itself. A first word repeated more than 3 times starts a loop: the list stops there; and
+    never more than 'massimo' items. -> (items, note or '')."""
+    conta, tenute = {}, []
+    for v in voci:
+        w = v.split()[0].lower() if v.split() else ""
+        conta[w] = conta.get(w, 0) + 1
+        if conta[w] > 3 and len(v.split()) > 1:
+            break
+        tenute.append(v)
+    ciclo = len(tenute) < len(voci)
+    tenute = tenute[:massimo]
+    nota = ""
+    if ciclo:
+        nota = f"the LLM looped in the negative: kept its first {len(tenute)} of {len(voci)} items"
+    elif len(voci) > massimo:
+        nota = f"negative capped at {massimo} items (the LLM wrote {len(voci)})"
+    return tenute, nota
+
+
+# 1.2: negative items that fight a writing the prompt asks for ("a sign reading "OPEN"")
+_NEG_SCRITTE = re.compile(r"^(?:text|texts|letters?|lettering|words?|writing|written text|typography|captions?|"
+                          r"signature|username|logo|logos|font|watermark text)$", re.I)
+_CITAZIONE = re.compile(r"[\"“”«»]\s*[^\"“”«»]{1,80}?\s*[\"“”«»]")
+
+
+def togli_neg_scritte(neg, prompt):
+    """When the prompt quotes a text to render, drop 'text', 'letters', 'signature'... from the negative (with real
+    cfg, as on MOSS-Image, they push against the very writing asked for). 'watermark' stays. -> (negative, removed)."""
+    if not neg or not _CITAZIONE.search(prompt or ""):
+        return neg, []
+    voci = [v.strip() for v in neg.split(",")]
+    via = [v for v in voci if _NEG_SCRITTE.match(v)]
+    return ", ".join(v for v in voci if v and v not in via), via
 
 
 def unisci_negativo(neg, base=NEGATIVO_BASE):
@@ -218,9 +273,12 @@ def rifinisci(grezzo, idea="", pelle=PELLE_DEFAULT):
     # from it (a front view came out turned from behind, 2026-10-17): those items are dropped
     voci = [v.strip() for v in (parti["negativo"] or "").split(",")]
     doppie = [v for v in voci if re.match(r"(?:no|not|without|never|lack of)\b", v, re.I)]
-    neg = unisci_negativo(", ".join(v for v in voci if v and v not in doppie), base)
+    voci, ciclo = limita_negativo([v for v in voci if v and v not in doppie])
+    neg = unisci_negativo(", ".join(voci), base)
     if doppie:
         t2 = t2 + [f"{len(doppie)} double negatives dropped from the negative (e.g. '{doppie[0]}')"]
+    if ciclo:
+        t2 = t2 + [ciclo]
     return scena, dett, neg, t1 + t2
 
 

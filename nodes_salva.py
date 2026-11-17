@@ -113,11 +113,18 @@ def dischi():
     """'(ComfyUI output)' + the drives that exist (Windows C:\\ D:\\ ...; elsewhere '/')."""
     out = [OUTPUT_COMFY]
     if os.name == "nt":
+        import ctypes
         import string
-        for lettera in string.ascii_uppercase[2:]:            # skip A: and B:
+        kernel = ctypes.windll.kernel32
+        presenti = kernel.GetLogicalDrives()
+        for i, lettera in enumerate(string.ascii_uppercase):
+            if i < 2 or not presenti >> i & 1:                 # skip A: and B:, and letters not in use
+                continue
             radice = f"{lettera}:\\"
             try:
-                if os.path.exists(radice):
+                # A disconnected network drive makes os.path.exists wait ~20 s, and INPUT_TYPES runs on
+                # every object_info: list mapped network drives without touching them.
+                if kernel.GetDriveTypeW(radice) == 4 or os.path.exists(radice):
                     out.append(radice)
             except Exception:
                 pass

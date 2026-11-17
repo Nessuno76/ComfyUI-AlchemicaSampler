@@ -79,6 +79,7 @@ function mostra(node, coppia) {
         img.src = url(f);
         img.style.display = f ? "" : "none";
         et.style.display = f ? "" : "none";
+        if (f?.label) et.textContent = f.label;          // e.g. LoRA A/B: "A · without LoRA"
     }
     c.vuoto.style.display = fa || fb ? "none" : "flex";
     c.taglia(null);
@@ -90,7 +91,7 @@ function mostra(node, coppia) {
 app.registerExtension({
     name: "AlchemicaMente.compare",
     async beforeRegisterNodeDef(nodeType, nodeData) {
-        if (nodeData.name !== "AlchemicaCompare") return;
+        if (nodeData.name !== "AlchemicaCompare" && nodeData.name !== "AlchemicaLoraAB") return;
         const creato = nodeType.prototype.onNodeCreated;
         nodeType.prototype.onNodeCreated = function () {
             const r = creato?.apply(this, arguments);

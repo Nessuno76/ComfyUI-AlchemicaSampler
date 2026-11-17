@@ -31,6 +31,25 @@ function righe(w, larghezza) {
     return r;
 }
 
+// Nodes 2.0 can show the same drawn widget in TWO places (inside the node and in the right 'Parameters' panel) and
+// keeps ONE repaint hook per widget (widget.triggerDraw, the last view to mount wins): the other view never repainted
+// (LoRA Stack+ rows added with the panel open stayed on "click to choose a LoRA"). This keeps every view's hook and
+// calls them all; a view that was closed throws once and is dropped.
+export function piuViste(w) {
+    const viste = new Set();
+    Object.defineProperty(w, "triggerDraw", {
+        configurable: true,
+        get() {
+            if (!viste.size) return undefined;
+            return () => { for (const f of [...viste]) { try { f(); } catch { viste.delete(f); } } };
+        },
+        set(f) {
+            if (typeof f === "function" && f.toString().replace(/\s/g, "") !== "()=>{}") viste.add(f);
+        },
+    });
+    return w;
+}
+
 export function testoFisso(node, nome) {
     let w = node.widgets?.find((x) => x.name === nome);
     if (w) return w;
@@ -58,6 +77,7 @@ export function testoFisso(node, nome) {
             return false;
         },
     };
+    piuViste(w);
     node.addCustomWidget ? node.addCustomWidget(w) : (node.widgets = [...(node.widgets ?? []), w]);
     return w;
 }

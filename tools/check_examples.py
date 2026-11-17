@@ -21,8 +21,11 @@ import pathlib
 import sys
 
 PKG = "comfyui-alchemicasampler"
-PUBLIC_MODELS = {"krea2_turbo_nvfp4.safetensors", "krea2_turbo_fp8_scaled.safetensors",
-                 "qwen3vl_4b_fp8_scaled.safetensors", "qwen_image_vae.safetensors"}
+PUBLIC_MODELS = {"moss_image_sft_int8_convrot.safetensors", "moss_image_sft_bf16.safetensors",
+                 "qwen3.5_9b_w4a8_gptq.safetensors", "qwen3.5_9b_int8_convrot.safetensors", "flux2-vae.safetensors",
+                 "krea2_turbo_nvfp4.safetensors", "krea2_turbo_fp8_scaled.safetensors",
+                 "qwen3vl_4b_fp8_scaled.safetensors", "qwen_image_vae.safetensors",
+                 "seedvr2_ema_7b_sharp_fp16.safetensors", "ema_vae_fp16.safetensors", "4x-ClearRealityV1.pth"}
 MODEL_EXT = (".safetensors", ".ckpt", ".pt", ".pth", ".gguf")
 ROOT = pathlib.Path(__file__).resolve().parent.parent / "example_workflows"
 

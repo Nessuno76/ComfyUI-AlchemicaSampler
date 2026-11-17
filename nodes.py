@@ -409,6 +409,8 @@ class AlchemicaTaratura:
                                  "stage 1 of two-stage sampling then gets its own step spacing (calibration v2)"}),
         }, "optional": {
             "modello_riferimento": ("MODEL", {"tooltip": "Optional: e.g. Krea 2 FP8, to measure the error introduced by NVFP4 quantization"}),
+            "negative": ("CONDITIONING", {"tooltip": "Optional: the negative you generate with. Needed when cfg > 1 "
+                         "(a model used at a real cfg, with its written negative). Empty = an all-zero negative, right for Krea 2 at cfg 1"}),
         }}
 
     RETURN_TYPES = ("LATENT", "IMAGE", "STRING")
@@ -425,13 +427,13 @@ class AlchemicaTaratura:
         return float("nan")
 
     def run(self, model, positive, latent_image, seed, passi_densi, cfg, profilo, modalita, sonda_eta=0.5,
-            measure_half_res=True, modello_riferimento=None):
+            measure_half_res=True, modello_riferimento=None, negative=None):
         auto = profilo.strip().lower() in ("", "(auto)", "auto")
         name = nome_profilo_auto(model, latent_image) if auto else \
             ("".join(ch for ch in profilo.strip() if ch.isalnum() or ch in "-_.") or "profilo")
         out, prof, rows, t = taratura.run_calibration(model, positive, latent_image, seed, passi_densi, cfg,
                                                       name, modalita, modello_riferimento, sonda_eta,
-                                                      bool(measure_half_res))
+                                                      bool(measure_half_res), negative)
         ms = model.get_model_object("model_sampling")
         c = dict(DEFAULTS, profilo=name)
         s8 = schedules.base_schedule(ms, "alchemica_tarato", 8, c)
@@ -492,6 +494,9 @@ class AlchemicaTaratura:
             lines.insert(1, f"PROVISIONAL PROFILE: {prof['campioni']}/{schedules.MIN_CAMPIONI} samples. (auto) will "
                             f"prefer a reliable profile of this checkpoint until this one reaches {schedules.MIN_CAMPIONI}. "
                             f"Queue more runs with DIFFERENT prompts (Prompt 'from list', line on increment)")
+        if negative is None and float(cfg) > 1.0:
+            lines.append(f"WARNING: cfg {float(cfg):g} with no negative connected: measured against an all-zero negative. "
+                         f"Connect the negative you generate with")
         if passi_densi < 24:
             lines.append(f"WARNING: passi_densi={passi_densi} is low for a reliable sensitivity measurement (40-60 recommended); "
                         f"eta_sicuro/detail_sicuro may not have been measured or may be noisy.")
@@ -578,6 +583,9 @@ class AlchemicaKrea:
         if ignorati:
             print(f"[AlchemicaKrea] ingressi non riconosciuti: {list(ignorati)} — "
                   f"riavvia il server di ComfyUI, non basta ricaricare la pagina")
+        if float(denoise) <= 0:  # nothing to redraw (e.g. the second pass of Body Guide when the guide is off)
+            vuota = torch.zeros(1, 8, 8, 3)
+            return (latent_image, vuota, "denoise 0: latent passed through", vuota)
         s1, s2, uno, restart, solver = MODI[modo]
         cfg_dict = copy.deepcopy(PRESETS["foto_tarata_2K"])
         cfg_dict.update({

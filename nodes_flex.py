@@ -123,7 +123,7 @@ class AlchemicaKSamplerFlex:
                                               "(sigma from the profile). 0 = off"),
                 "contraction": _f(0.85, 0.3, 1.2, 0.01, "Scale of the initial noise. 1 = standard ComfyUI noise; "
                                                         "0.85 = cleaner shadows"),
-                "shift": _f(0.0, 0.0, 10.0, 0.01, "Flow shift of the schedule. 0 = the model's own. Higher = more "
+                "shift": _f(0.0, 0.0, 10.0, 0.01, "Flow shift of the schedule, in the model's own units (Krea 2: 1.15). 0 = the model's own. Higher = more "
                                                   "steps at high noise (composition), lower = more at the end (detail)"),
                 "handoff_k": _f(0.0, 0.0, 4.0, 0.05, "Two stages: resolution correction of the hand-off. 0 = auto: "
                                 "stage 1 stops at the half-resolution sigma equivalent to 'redraw' at full resolution "

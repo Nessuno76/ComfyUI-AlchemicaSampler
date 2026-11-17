@@ -29,7 +29,7 @@ predizione x0 = D(x, sigma). Da queste si misura:
                 (euler_2m, heun) e' densita' ~ costo3^(1/3)  [calibrazione v2]
   *_bassa     = le stesse curve misurate a META' risoluzione: lo stadio 1 dei due stadi gira li'
 
-Tutto e' misurato nello spazio latente (Wan21, 1 px latente = 8 px immagine).
+Tutto e' misurato nello spazio latente (Krea 2/Wan21: 1 px latente = 8 px immagine; MOSS-Image/FLUX.2: 16 px).
 I profili si accumulano: piu' prompt diversi = profilo piu' affidabile.
 """
 import json
@@ -46,7 +46,7 @@ import comfy.sample
 import comfy.samplers
 import comfy.utils
 
-from . import schedules
+from . import famiglia, schedules
 from .noise import zero_conditioning
 from .solvers import ancestral_rf_step
 
@@ -84,9 +84,11 @@ def _replay_loop(model, x, sigmas, extra_args=None, callback=None, disable=None,
     return x
 
 
-def _run(model, positive, cfg_scale, latent, noise, sigmas, sampler, seed):
+def _run(model, positive, cfg_scale, latent, noise, sigmas, sampler, seed, negative=None):
     g = comfy.samplers.CFGGuider(model)
-    g.set_conds(positive, zero_conditioning(positive))
+    # 2026-11-17: a real negative when given. MOSS-Image runs at cfg 2.5 against a written negative: an all-zero
+    # negative is not what it sees in use, and the measured curves would belong to another sampling
+    g.set_conds(positive, negative if negative is not None else zero_conditioning(positive))
     g.set_cfg(cfg_scale)
     return g.sample(noise, latent, sampler, sigmas, seed=seed,
                     disable_pbar=not comfy.utils.PROGRESS_BAR_ENABLED)
@@ -124,7 +126,8 @@ def _probe_indices(n, n_probe=4):
     return sorted(set(int(round(v)) for v in pts.tolist()))
 
 
-def measure_sensitivity(model, positive, cfg_scale, latent, sig, store, seed, eta_test=0.5, n_probe=4):
+def measure_sensitivity(model, positive, cfg_scale, latent, sig, store, seed, eta_test=0.5, n_probe=4,
+                        negative=None, px=8):
     """Ritorna [{sigma, comp_div, dett_div}, ...] oppure None se non misurabile (mai
     un'eccezione: chi chiama deve poter continuare a salvare il resto del profilo anche
     se questa parte fallisce). comp_div/dett_div = quanto la predizione diverge da
@@ -137,7 +140,7 @@ def measure_sensitivity(model, positive, cfg_scale, latent, sig, store, seed, et
         _run(model, positive, cfg_scale, latent, torch.zeros_like(latent), sig,
             comfy.samplers.KSAMPLER(_sensitivity_loop, extra_options={
                 "states": store, "idx": idx, "eta_test": float(eta_test),
-                "seed": int(seed), "out": sens_out}), seed)
+                "seed": int(seed), "out": sens_out}), seed, negative)
     except Exception as e:
         print(f"[AlchemicaSampler] sensibilita' non misurata (misura comunque salvata): {e}")
         return None
@@ -147,7 +150,8 @@ def measure_sensitivity(model, positive, cfg_scale, latent, sig, store, seed, et
             continue
         try:
             d_clean, d_pert = _4d(store["d"][i + 1]), _4d(den_pert)
-            comp_div = max(0.0, 1.0 - _cos(_low(d_pert), _low(d_clean)))
+            k = _k_low(px)
+            comp_div = max(0.0, 1.0 - _cos(_low(d_pert, k), _low(d_clean, k)))
             dett_div = max(0.0, 1.0 - _cos(_high(d_pert), _high(d_clean)))
         except Exception:
             continue
@@ -159,6 +163,12 @@ def measure_sensitivity(model, positive, cfg_scale, latent, sig, store, seed, et
 
 def _4d(t):
     return t.reshape(-1, t.shape[1], t.shape[-2], t.shape[-1]) if t.ndim == 5 else t
+
+
+def _k_low(px=8):
+    """Block of the composition measure in LATENT pixels: always 64 image pixels (8 on Krea 2, whose latent pixel
+    is 8 px; 4 on MOSS-Image, 16 px), so the curves of the two models describe the same scale of the image."""
+    return max(1, 64 // int(px or 8))
 
 
 def _low(t, k=8):
@@ -180,15 +190,16 @@ def _rms(t):
     return float(t.pow(2).mean().sqrt())
 
 
-def measure(store, ref=None):
+def measure(store, ref=None, px=8):
     D = [_4d(d) for d in store["d"]]
     s = store["s"]
     final = D[-1]
-    lf_f, hf_f = _low(final), _high(final)
+    k = _k_low(px)
+    lf_f, hf_f = _low(final, k), _high(final)
     rms_f, rms_hf_f = _rms(final), max(_rms(hf_f), 1e-8)
     rows = []
     for i in range(len(D)):
-        r = {"s": s[i], "comp": _cos(_low(D[i]), lf_f), "dett": _cos(_high(D[i]), hf_f),
+        r = {"s": s[i], "comp": _cos(_low(D[i], k), lf_f), "dett": _cos(_high(D[i]), hf_f),
              "energia": _rms(_high(D[i])) / rms_hf_f}
         if ref is not None:
             R = _4d(ref[i])
@@ -542,17 +553,18 @@ def _curva(punti):
     return _smooth(_on_grid([c[0] for c in punti], [c[1] for c in punti], log=True)).tolist()
 
 
-def _traiettoria(model, positive, cfg_scale, latent, seed, sig):
+def _traiettoria(model, positive, cfg_scale, latent, seed, sig, negative=None):
     store = {"x": [], "d": [], "s": []}
     noise = comfy.sample.prepare_noise(latent, seed)
     samples = _run(model, positive, cfg_scale, latent, noise, sig,
-                   comfy.samplers.KSAMPLER(_record_loop, extra_options={"store": store}), seed)
+                   comfy.samplers.KSAMPLER(_record_loop, extra_options={"store": store}), seed, negative)
     return store, noise, samples
 
 
 def run_calibration(model, positive, latent_dict, seed, dense_steps, cfg_scale,
-                    profile_name, mode, reference_model=None, sonda_eta=0.5, misura_bassa=True):
+                    profile_name, mode, reference_model=None, sonda_eta=0.5, misura_bassa=True, negative=None):
     ms = model.get_model_object("model_sampling")
+    px = famiglia.fattore(model)                 # image pixels per latent pixel: 8 Krea 2, 16 MOSS-Image
     latent = latent_dict["samples"]
     try:
         latent = comfy.sample.fix_empty_latent_channels(model, latent, latent_dict.get("downscale_ratio_spacial", None))
@@ -567,11 +579,26 @@ def run_calibration(model, positive, latent_dict, seed, dense_steps, cfg_scale,
     os.makedirs(schedules.PROFILE_DIR, exist_ok=True)
     path = os.path.join(schedules.PROFILE_DIR, profile_name + ".json")
     prof = {}
+    avvisi_run = []
     if mode == "accumula" and os.path.isfile(path):
         with open(path, "r", encoding="utf-8") as f:
             prof = json.load(f)
+        # 2026-10-24: same file name, different weights (an author re-uploads a fixed version with the same name):
+        # its samples must not be averaged with the old model's. The old profile goes to profili/archivio.
+        vecchia, nuova = prof.get("impronta2"), fingerprint2(model)
+        if vecchia and nuova and vecchia != nuova:
+            arch = os.path.join(schedules.PROFILE_DIR, "archivio")
+            os.makedirs(arch, exist_ok=True)
+            dest = os.path.join(arch, f"{profile_name}_{str(vecchia)[:12]}.json")
+            k = 1
+            while os.path.exists(dest):
+                dest = os.path.join(arch, f"{profile_name}_{str(vecchia)[:12]}_{k}.json")
+                k += 1
+            os.replace(path, dest)
+            prof = {}
+            avvisi_run.append(f"the model file has the same name but DIFFERENT weights (fingerprint {vecchia} -> "
+                              f"{nuova}): the old profile was moved to {dest} and this calibration starts from zero")
     misure = prof.get("misure") or {}
-    avvisi_run = []
     seed_in = int(seed)
     sid = sample_id(positive, seed, latent.shape)
     if mode == "accumula" and sid in misure:
@@ -584,7 +611,7 @@ def run_calibration(model, positive, latent_dict, seed, dense_steps, cfg_scale,
                           f"{seed_in} to add a NEW sample. Different prompts are better: Prompt 'line' on increment")
 
     t0 = time.perf_counter()
-    store, noise, samples = _traiettoria(model, positive, cfg_scale, latent, seed, sig)
+    store, noise, samples = _traiettoria(model, positive, cfg_scale, latent, seed, sig, negative)
     t_main = time.perf_counter() - t0
     terza = misura_terza(store)
 
@@ -592,12 +619,13 @@ def run_calibration(model, positive, latent_dict, seed, dense_steps, cfg_scale,
     if reference_model is not None:
         ref = []
         _run(reference_model, positive, cfg_scale, latent, torch.zeros_like(noise), sig,
-             comfy.samplers.KSAMPLER(_replay_loop, extra_options={"states": store, "out": ref}), seed)
+             comfy.samplers.KSAMPLER(_replay_loop, extra_options={"states": store, "out": ref}), seed, negative)
 
-    rows, cost = measure(store, ref)
+    rows, cost = measure(store, ref, px)
     sens = None
     try:
-        sens = measure_sensitivity(model, positive, cfg_scale, latent, sig, store, seed, sonda_eta)
+        sens = measure_sensitivity(model, positive, cfg_scale, latent, sig, store, seed, sonda_eta,
+                                   negative=negative, px=px)
     except Exception as e:                 # non deve mai far perdere il resto del profilo
         print(f"[AlchemicaSampler] sensibilita' non misurata: {e}")
     # half resolution (the first stage of two-stage sampling): its own curves, so stage 1 gets its own steps
@@ -607,9 +635,9 @@ def run_calibration(model, positive, latent_dict, seed, dense_steps, cfg_scale,
             H, W = latent.shape[-2], latent.shape[-1]
             h1, w1 = max(2, int(round(H / 4.0)) * 2), max(2, int(round(W / 4.0)) * 2)
             low = comfy.utils.common_upscale(latent, w1, h1, "nearest-exact", "disabled")
-            st_b, _, _ = _traiettoria(model, positive, cfg_scale, low, seed, sig)
-            _, cost_b = measure(st_b)
-            bassa = {"costo": _curva(cost_b), "costo3": _curva(misura_terza(st_b)), "ris": f"{w1 * 8}x{h1 * 8}"}
+            st_b, _, _ = _traiettoria(model, positive, cfg_scale, low, seed, sig, negative)
+            _, cost_b = measure(st_b, None, px)
+            bassa = {"costo": _curva(cost_b), "costo3": _curva(misura_terza(st_b)), "ris": f"{w1 * px}x{h1 * px}"}
             del st_b
         except Exception as e:
             print(f"[AlchemicaSampler] half-resolution measure skipped: {e}")
@@ -637,13 +665,13 @@ def run_calibration(model, positive, latent_dict, seed, dense_steps, cfg_scale,
         misure = {"precedente": {k: v for k, v in prof.items() if k in
                                  ("costo", "comp", "dett", "energia", "quant", "quant_hf")}}
     misure[sid] = {k: v for k, v in new.items() if k != "sigma"}
-    misure[sid]["info"] = {"seed": int(seed), "ris": f"{latent.shape[-1] * 8}x{latent.shape[-2] * 8}",
+    misure[sid]["info"] = {"seed": int(seed), "ris": f"{latent.shape[-1] * px}x{latent.shape[-2] * px}",
                            "secondi": round(time.perf_counter() - t0, 1), "quando": time.strftime("%Y-%m-%d %H:%M")}
     prof["sigma"] = GRID.tolist()
     prof["misure"] = misure
     prof = merge_measures(prof, misure)
     prof["ultima_misura"] = sid
-    H, W = latent.shape[-2] * 8, latent.shape[-1] * 8
+    H, W = latent.shape[-2] * px, latent.shape[-1] * px
     prof.setdefault("risoluzioni", [])
     if f"{W}x{H}" not in prof["risoluzioni"]:
         prof["risoluzioni"].append(f"{W}x{H}")

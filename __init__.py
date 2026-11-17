@@ -100,6 +100,22 @@ try:  # LoRA Stack+: LoRA slots on demand, real strengths, previews (replaces th
 except Exception as e:  # pragma: no cover
     print(f"[AlchemicaSampler] LoRA Stack+ node NOT loaded: {e}")
 
+# New-person tools (model views & poses, body shape, body guide, face / torso / intimate): still in the lab and not
+# published yet. When their files are not in the folder they are skipped without a message.
+import importlib as _importlib
+import os as _os
+
+for _mod, _what in (("nodes_modello", "Model views"), ("nodes_corpo", "Body shape"),
+                    ("nodes_guida", "Body guide"), ("nodes_dettagli", "Face / torso / intimate")):
+    if not _os.path.exists(_os.path.join(_os.path.dirname(__file__), _mod + ".py")):
+        continue
+    try:
+        _m = _importlib.import_module("." + _mod, __name__)
+        NODE_CLASS_MAPPINGS.update(_m.NODE_CLASS_MAPPINGS)
+        NODE_DISPLAY_NAME_MAPPINGS.update(_m.NODE_DISPLAY_NAME_MAPPINGS)
+    except Exception as e:  # pragma: no cover
+        print(f"[AlchemicaSampler] {_what} nodes NOT loaded: {e}")
+
 try:  # 1.1 restyle: English, community-standard twins of every node; the 1.0 nodes become hidden (legacy)
     from .nodes_v2 import costruisci as _costruisci_v2
     _costruisci_v2(NODE_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS)
@@ -119,6 +135,20 @@ try:  # before / after slider that works in the classic interface and in Nodes 2
     NODE_DISPLAY_NAME_MAPPINGS.update(_CMP_NAMES)
 except Exception as e:  # pragma: no cover
     print(f"[AlchemicaSampler] Compare node NOT loaded: {e}")
+
+try:  # LoRA A/B: the same photo with and without the LoRAs, shown in the before / after slider
+    from .nodes_lora_ab import NODE_CLASS_MAPPINGS as _LAB, NODE_DISPLAY_NAME_MAPPINGS as _LAB_NAMES
+    NODE_CLASS_MAPPINGS.update(_LAB)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_LAB_NAMES)
+except Exception as e:  # pragma: no cover
+    print(f"[AlchemicaSampler] LoRA A/B node NOT loaded: {e}")
+
+try:  # one photo of a folder per run (batch upscale / retouch of a whole folder)
+    from .nodes_cartella import NODE_CLASS_MAPPINGS as _DIR, NODE_DISPLAY_NAME_MAPPINGS as _DIR_NAMES
+    NODE_CLASS_MAPPINGS.update(_DIR)
+    NODE_DISPLAY_NAME_MAPPINGS.update(_DIR_NAMES)
+except Exception as e:  # pragma: no cover
+    print(f"[AlchemicaSampler] Load Image Folder node NOT loaded: {e}")
 
 WEB_DIRECTORY = "./web"   # interface extensions (pass-through connectors that appear one at a time)
 

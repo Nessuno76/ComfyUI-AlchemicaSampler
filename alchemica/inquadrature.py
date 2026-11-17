@@ -329,7 +329,28 @@ def taglia_corpo(testo, shot):
     if not quale or not testo:
         return testo, []
     parole = re.compile(r"\b(?:" + (_GAMBE if quale == "legs" else _PIEDI) + r")\b", re.I)
-    return _per_clausole(testo, lambda c: ("", [c.strip(" .")]) if parole.search(c) else (c, []))
+
+    def filtro(c):
+        if not parole.search(c):
+            return c, []
+        # 1.2 (2026-11-17): "She wears a red leather jacket over a dark top and blue jeans" lost the jacket too in a
+        # chest-up shot. Only the conjuncts that name the cut parts go, when the first one is clean
+        pezzi = re.split(r"\s+(?:and|with|paired with|plus)\s+", c)
+        if len(pezzi) > 1 and not parole.search(pezzi[0]):
+            tenuti = [p for p in pezzi if not parole.search(p)]
+            if len(tenuti) < len(pezzi):
+                via = [p.strip(" .") for p in pezzi if parole.search(p)]
+                # keep the original joiners between the kept pieces: rebuild from the clause itself
+                out, resto = pezzi[0], c[len(pezzi[0]):]
+                for p in pezzi[1:]:
+                    i = resto.find(p)
+                    sep, resto = resto[:i], resto[i + len(p):]
+                    if not parole.search(p):
+                        out += sep + p
+                return out, via
+        return "", [c.strip(" .")]
+
+    return _per_clausole(testo, filtro)
 
 
 def taglia_luogo(testo):

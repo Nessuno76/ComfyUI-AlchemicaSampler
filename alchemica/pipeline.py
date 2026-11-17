@@ -17,7 +17,7 @@ import comfy.sample
 import comfy.samplers
 import comfy.utils
 
-from . import schedules
+from . import famiglia, schedules
 from .guidance import AlchemicaGuider
 from .noise import contract_noise, zero_conditioning
 from .presets import AUTO_KEYS
@@ -124,12 +124,15 @@ def nota_dettaglio(cfg, stats):
     return [f"detail boost: asked {voluto:.2f}, applied at most {abs(a):.3f} at sigma {s:.3f} ({finestra})"]
 
 
-def guardia_duplicati(cfg, latent, vuoto, denoise):
+def guardia_duplicati(cfg, latent, vuoto, denoise, px=8, fam=famiglia.KREA2):
     """Switches two stages on when a from-scratch image is wider than the model composes safely in one stage.
-    Opt-out: cfg['auto_two_stage'] = False. Changes cfg in place, returns the report lines."""
+    Opt-out: cfg['auto_two_stage'] = False. Changes cfg in place, returns the report lines.
+    px = pixels per latent cell. Measured on Krea 2 only: other families are left alone (1.2)."""
     if cfg.get("two_stage") or not vuoto or denoise < 0.9999 or cfg.get("auto_two_stage", True) is False:
         return []
-    H, W = latent.shape[-2] * 8, latent.shape[-1] * 8
+    if fam != famiglia.KREA2:
+        return []
+    H, W = latent.shape[-2] * px, latent.shape[-1] * px
     if W <= LATO_SICURO:
         return []
     cfg["two_stage"] = True
@@ -151,9 +154,17 @@ def run(model, positive, negative, latent_dict, seed, cfg, denoise=1.0, model2=N
     cfg, auto_notes = resolve_auto(dict(cfg))
     latent = _fix_latent(model, latent_dict)
     is_empty = torch.count_nonzero(latent) == 0
-    guardia = guardia_duplicati(cfg, latent, is_empty, denoise)    # before the guiders: it can lower the hand-off
+    px, fam = famiglia.fattore(model), famiglia.di(model)
+    guardia = guardia_duplicati(cfg, latent, is_empty, denoise, px, fam)    # before the guiders: it can lower the hand-off
     comp = (getattr(model, "model_options", None) or {}).get("alchemica_composizione")
     cambio = float(cfg.get("handoff_sigma") or 0.0)
+    senza_misura = comp is not None and fam != famiglia.KREA2
+    if senza_misura:
+        # 1.2 (2026-11-17): the composition phase is a Krea 2 technique. On MOSS-Image the short framing text decides
+        # clothes and colours before the hand-off: with the fallback 0.65 AND with its own calibrated hand-off (0.804,
+        # 12 samples) a red leather jacket and pink/blue neon came out as a black jacket in a grey alley.
+        # The full text runs from the first step; the framing sentence still opens it
+        comp = None
     if comp is not None and cfg.get("composition_phase", True) and cambio > 0.0:
         # ⚗ Prompt with a strict framing: short text until the hand-off, full text after (zero extra cost)
         from .fasi import make_guider_fasi
@@ -166,6 +177,9 @@ def run(model, positive, negative, latent_dict, seed, cfg, denoise=1.0, model2=N
     report, plots = ([("auto: " + ", ".join(auto_notes))] if auto_notes else []), []
     if comp_nota:
         report.append(comp_nota)
+    if senza_misura:
+        report.append(f"composition phase off on {famiglia.nome(fam)}: its framing text alone would decide clothes "
+                      f"and colours, so the full text runs from the first step")
     t0 = time.perf_counter()
     batch_inds = latent_dict.get("batch_index", None)
 
@@ -209,9 +223,9 @@ def run(model, positive, negative, latent_dict, seed, cfg, denoise=1.0, model2=N
                           f"{schedules.sigma_low_res(cfg['handoff_sigma'], k_res):.3f} at half resolution = "
                           f"{float(cfg['handoff_sigma']):.3f} at full resolution")
         report += [
-            f"STAGE 1  {w1 * 8}x{h1 * 8}px  {len(s1) - 1} steps  {t1:.1f}s  sigma: "
+            f"STAGE 1  {w1 * px}x{h1 * px}px  {len(s1) - 1} steps  {t1:.1f}s  sigma: "
             + " ".join(f"{v:.3f}" for v in s1.tolist()),
-            f"STAGE 2  {W * 8}x{H * 8}px  {len(s2) - 1} steps  {t2:.1f}s  sigma: "
+            f"STAGE 2  {W * px}x{H * px}px  {len(s2) - 1} steps  {t2:.1f}s  sigma: "
             + " ".join(f"{v:.3f}" for v in s2.tolist()),
         ]
         if model2 is not None:
@@ -231,7 +245,7 @@ def run(model, positive, negative, latent_dict, seed, cfg, denoise=1.0, model2=N
         samples = _sample(model, guider, cfg, latent, noise, sig, seed,
                           latent_dict.get("noise_mask", None), stats)
         H, W = latent.shape[-2], latent.shape[-1]
-        report.append(f"SINGLE STAGE  {W * 8}x{H * 8}px  {len(sig) - 1} steps  sigma: "
+        report.append(f"SINGLE STAGE  {W * px}x{H * px}px  {len(sig) - 1} steps  sigma: "
                       + " ".join(f"{v:.3f}" for v in sig.tolist()))
         plots = [("single stage", sig)]
         final_sigmas = sig

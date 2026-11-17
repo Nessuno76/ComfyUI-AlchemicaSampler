@@ -41,12 +41,27 @@ Load Krea 2  →  LoRA Stack+  →  Prompt  →  KSampler Flex  →  Save Image
 | 4 | **⚗ KSampler Flex** | any ComfyUI sampler and scheduler, or the calibrated ones; two stages; DeGrid; a report of what it did |
 | 5 | **⚗ Save Image** | pick drive and folder in a browser, name the file after the workflow |
 
-Open **`KreaAlchemicaMente_K2AM`** (*Workflow → Browse templates → ComfyUI-AlchemicaSampler*), write an idea in the
-Prompt node, press *Queue*. That is the whole setup.
+Open **`ALCHEMICA_T2I`** (*Workflow → Browse templates → ComfyUI-AlchemicaSampler*), write an idea in the Prompt
+node, press *Queue*. That is the whole setup. For a photo, open **`ALCHEMICA_I2I`**: load the photo, press *Queue*,
+drag the before / after slider.
+
+> **Different, not better.** On the same seed this recipe gives *another* picture than ComfyUI's KSampler, not a
+> guaranteed improvement (see [the honest comparison](#-an-honest-comparison)). The same KSampler Flex node switches
+> to standard sampling with `euler` + `simple` and `two_stage` off, so you can keep the tools and choose the look.
+
+**`ALCHEMICA_T2I`**, three ideas, nothing touched but the text (Krea 2 Turbo NVFP4, no LoRA, no calibration, 2:3, 4 MP, seed 1234):
+
+![ALCHEMICA_T2I: olive grove, alchemist's laboratory, fisherman](assets/starter_t2i.jpg)
+
+**`ALCHEMICA_I2I`**, mode *rebuild* (0.40), empty prompt: a 0.5 MP photo saved as a heavy JPEG, brought to 4 MP. Linen, leaves and
+skin come back; the face changes too, she looks older. That is what *rebuild* does: to keep the same face, use *improve*
+(0.30) or paint a mask over the part you want to change.
+
+![ALCHEMICA_I2I: before, after, face before and after at 100 %](assets/starter_i2i.jpg)
 
 ## ⚗ What is in the box
 
-More than twenty nodes and thirteen example workflows, so you do not have to bolt anything on:
+More than twenty nodes and fifteen example workflows, so you do not have to bolt anything on:
 
 | Area | Nodes |
 |---|---|
@@ -80,7 +95,7 @@ cd ComfyUI/custom_nodes && git clone https://github.com/Nessuno76/ComfyUI-Alchem
 | `qwen3vl_4b_fp8_scaled.safetensors` | `models/text_encoders` |
 | `qwen_image_vae.safetensors` | `models/vae` |
 
-**3. Open `KreaAlchemicaMente_K2AM`** and queue it. No calibration yet? It still works: the nodes fall back to an
+**3. Open `ALCHEMICA_T2I`** (or `ALCHEMICA_I2I` for a photo) and queue it. No calibration yet? It still works: the nodes fall back to an
 analytic schedule and the report says so. For the full effect, calibrate once per checkpoint (below).
 
 ## ⚗ An honest comparison
@@ -148,7 +163,9 @@ window.
 
 | Workflow | Use it for |
 |---|---|
-| **KreaAlchemicaMente_K2AM** | **start here**: the five-node line above |
+| **ALCHEMICA_T2I** | **start here**: the five-node line above, with framing and look presets |
+| **ALCHEMICA_I2I** | **start here for photos**: improve / rebuild / change a painted zone, before / after, optional SeedVR2 upscale |
+| **KreaAlchemicaMente_K2AM** | the 1.1.0 starter: the same line with the classic Prompt layout |
 | **KREA2_CONFRONTO_ONESTO** | the honest A / B / C comparison shown above, with your own prompt |
 | **KREA2_COMPLETO** | everything together: loader → prompt enhancer → text → NAG → KSampler Pro |
 | **KREA2_SEMPLICE** | the essential: LoRA stack + one sampler node |

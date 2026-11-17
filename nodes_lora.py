@@ -27,6 +27,8 @@
   is not for this model (e.g. an SDXL LoRA on Krea 2) and the node says so.
 * Trigger words: a row with 'T' on puts its words on the MODEL (model_options['alchemica_trigger_words']); the
   ⚗ Prompt node reads them and adds the missing ones in front of the prompt. No extra wire.
+* Active LoRAs: names and strengths go on the MODEL too (model_options['alchemica_loras']); ⚗ LoRA A/B writes them
+  on the photo.
 * Civitai (only when you press the button): the SHA256 of the file is looked up on civitai.com
   (/api/v1/model-versions/by-hash); the answer is saved as name.civitai.info and, if missing, the first safe preview
   image as name.preview.png. Optional API key in the environment variable CIVITAI_API_KEY.
@@ -148,6 +150,7 @@ def _leggi_json(p):
 # layer names -> model family, when no metadata says it (first match wins; keys normalised: '_' -> '.')
 FAMIGLIE = (
     ("Krea 2", ("txtfusion", "text.fusion", "attn.wq", "attn.to.gate")),
+    ("MOSS-Image", ("video.embedder", "shared.block.modulation", "ffn.gate", "ffn.up.", "ffn.down.")),
     ("Qwen-Image", ("img.mlp", "txt.mlp", "add.q.proj", "img.mod")),
     ("Flux", ("double.blocks", "single.blocks", "single.transformer.blocks")),
     ("Z-Image / Lumina", ("noise.refiner", "context.refiner")),
@@ -387,7 +390,7 @@ class AlchemicaLoraStackPlus:
 
     def applica(self, model, loras="[]", clip=None, **kw):
         import comfy.sd
-        righe, avvisi, stato, parole = [], [], {}, []
+        righe, avvisi, stato, parole, usate = [], [], {}, [], []
         n_patch = lambda m: sum(len(v) for v in m.patches.values()) if m is not None else 0
         famiglia = type(model.model).__name__
         for s in leggi_slot(loras):
@@ -430,11 +433,15 @@ class AlchemicaLoraStackPlus:
             stato[nome] = st
             if s["triggers_on"]:
                 parole += [w for w in (x.strip() for x in s["trigger_words"].split(",")) if w and w not in parole]
+            usate.append({"name": breve, "strength": forza, "strength_clip": forza_t if clip is not None else None})
             righe.append(f"{nome}  x{forza:g}" + (f"  txt x{forza_t:g}" if clip is not None else "")
                          + f"  [{agganciati} layers]")
         testo = (f"Active LoRAs ({len(righe)}):\n" + "\n".join(righe)) if righe else "Active LoRAs: none"
         if avvisi:
             testo += "\n" + "\n".join(avvisi)
+        if usate:                               # names + strengths on the MODEL, for labels (⚗ LoRA A/B)
+            model = model.clone()
+            model.model_options["alchemica_loras"] = list(model.model_options.get("alchemica_loras", [])) + usate
         if parole:
             prima = list(model.model_options.get("alchemica_trigger_words", []))
             model = model.clone()

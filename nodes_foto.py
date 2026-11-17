@@ -44,6 +44,8 @@ MODI = {
     "cambia (stessa posa)": 0.60,
     "trasforma (usa come base)": 0.80,
 }
+MODI_EN = {"migliora (ritocco leggero)": "improve (light retouch)", "ricostruisci (piu' dettaglio)": "rebuild (more detail)",
+           "cambia (stessa posa)": "change (same pose)", "trasforma (usa come base)": "transform (use as base)"}
 SOGLIA_MASCHERA = 1e-3      # a mask with less than 0.1% painted pixels counts as "no mask"
 
 
@@ -203,7 +205,7 @@ class AlchemicaFotoPrepara:
         else:
             rep.append("no mask: the whole photo")
             m_out = torch.ones((1, h, w), dtype=torch.float32)
-        rep.append(f"mode '{modo}' -> strength (denoise) {dn:.2f}" + (" (set by hand)" if forza >= 0 else ""))
+        rep.append(f"mode '{MODI_EN.get(modo, modo)}' -> strength (denoise) {dn:.2f}" + (" (set by hand)" if forza >= 0 else ""))
         testo = "\n".join(rep)
         print("[AlchemicaFoto] " + testo.replace("\n", " | "))
         return (out, img, m_out, dn, testo)
@@ -279,6 +281,28 @@ class AlchemicaBiancoNero:
                 "maschera": ("MASK", {"tooltip": "Optional: b/w only in the painted zone (or everywhere ELSE with "
                                                  "'inverti': colour splash, the subject stays in colour)"}),
                 "inverti_maschera": ("BOOLEAN", {"default": False}),
+                # darkroom finishing (added after the first release: kept LAST so saved workflows keep their values;
+                # all at 0 / off = the same result as before)
+                "livelli_auto": ("BOOLEAN", {"default": False,
+                                 "tooltip": "Stretches the greys so the darkest 0.3% becomes black and the lightest 0.3% "
+                                            "white: a flat, foggy photo gets full blacks and whites"}),
+                "ombre": ("FLOAT", {"default": 0.0, "min": -1.0, "max": 1.0, "step": 0.05,
+                          "tooltip": "+ opens the dark areas (detail in hair, dark clothes), - makes them deeper. "
+                                     "Mid-grey and highlights do not move"}),
+                "luci": ("FLOAT", {"default": 0.0, "min": -1.0, "max": 1.0, "step": 0.05,
+                         "tooltip": "- recovers the light areas (burnt skin, white sky), + makes them brighter"}),
+                "chiarezza": ("FLOAT", {"default": 0.0, "min": -1.0, "max": 1.5, "step": 0.05,
+                              "tooltip": "Local contrast (wide radius): texture, volume, 'bite'. 0.2-0.4 portrait, "
+                                         "0.5-0.8 man / street / architecture. Negative = soft, dreamy"}),
+                "nitidezza": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 3.0, "step": 0.05,
+                              "tooltip": "Unsharp mask on the fine detail (eyes, eyelashes, fabric). 0.3-0.6 = natural, "
+                                         "> 1 = crisp. Applied before the grain, so the grain is not sharpened"}),
+                "raggio_nitidezza": ("FLOAT", {"default": 1.0, "min": 0.3, "max": 5.0, "step": 0.1,
+                                     "tooltip": "Size of the detail sharpened, in pixels: 0.7-1.2 fine detail, "
+                                                "2-3 for large photos (> 3 MP)"}),
+                "vignettatura": ("FLOAT", {"default": 0.0, "min": -1.0, "max": 1.0, "step": 0.05,
+                                 "tooltip": "+ darkens the corners (the eye goes to the centre), - lightens them. "
+                                            "0.2-0.35 = classic print"}),
             },
         }
 
@@ -286,14 +310,50 @@ class AlchemicaBiancoNero:
     RETURN_NAMES = ("immagine",)
     FUNCTION = "converti"
     CATEGORY = CAT
-    DESCRIPTION = "Black and white as in the darkroom (channel filter + contrast + toning + grain). Instant, no AI."
+    DESCRIPTION = ("Black and white as in the darkroom (channel filter + levels + shadows/highlights + contrast + "
+                   "clarity + sharpening + vignette + grain + toning). Instant, no AI.")
 
-    def converti(self, immagine, filtro, viraggio, contrasto, luminosita, grana, maschera=None, inverti_maschera=False):
+    @staticmethod
+    def _sfoca(g, sigma):
+        """Separable gaussian blur of a [B,H,W,1] grey image (edges replicated). Wide radii are blurred on a smaller
+        copy and scaled back (a 200 px kernel on a 9 MP photo would need terabytes with a direct convolution)."""
+        H, W = g.shape[1], g.shape[2]
+        y = g.movedim(-1, 1)
+        f = 1
+        if sigma > 3:
+            f = sigma / 2.0
+            y = F.interpolate(y, size=(max(4, round(H / f)), max(4, round(W / f))), mode="area")
+            sigma = 2.0
+        r = max(1, min(int(math.ceil(sigma * 3)), min(y.shape[2], y.shape[3]) // 2 - 1))
+        ax = torch.arange(-r, r + 1, dtype=g.dtype, device=g.device)
+        k = torch.exp(-(ax ** 2) / (2 * sigma ** 2))
+        k = k / k.sum()
+        y = F.conv2d(F.pad(y, (r, r, 0, 0), mode="replicate"), k.view(1, 1, 1, -1))
+        y = F.conv2d(F.pad(y, (0, 0, r, r), mode="replicate"), k.view(1, 1, -1, 1))
+        if f > 1:
+            y = F.interpolate(y, size=(H, W), mode="bilinear", align_corners=False)
+        return y.movedim(1, -1)
+
+    def converti(self, immagine, filtro, viraggio, contrasto, luminosita, grana, maschera=None, inverti_maschera=False,
+                 livelli_auto=False, ombre=0.0, luci=0.0, chiarezza=0.0, nitidezza=0.0, raggio_nitidezza=1.0,
+                 vignettatura=0.0):
         x = immagine[..., :3].float()
         if filtro == SPENTO_BN:
             return (x,)
         w = torch.tensor(FILTRI_BN.get(filtro) or FILTRI_BN["neutro (luminanza)"], dtype=x.dtype, device=x.device)
         g = (x * w).sum(-1, keepdim=True)                                 # grey
+        if livelli_auto:                                                  # black / white point per image
+            for i in range(g.shape[0]):
+                campione = g[i].flatten()
+                if campione.numel() > 2_000_000:
+                    campione = campione[:: campione.numel() // 1_000_000]
+                lo, hi = torch.quantile(campione, torch.tensor([0.003, 0.997], dtype=g.dtype, device=g.device))
+                if float(hi - lo) > 0.05:
+                    g[i] = ((g[i] - lo) / (hi - lo)).clamp(0, 1)
+        if abs(ombre) > 1e-3 or abs(luci) > 1e-3:                        # tone zones, mid-grey stays put
+            ps = ((0.5 - g) * 2).clamp(0, 1) ** 2                         # weight 1 at black, 0 from mid-grey up
+            pl = ((g - 0.5) * 2).clamp(0, 1) ** 2                         # weight 1 at white, 0 below mid-grey
+            g = (g + 0.25 * ombre * ps + 0.25 * luci * pl).clamp(0, 1)
         if abs(contrasto - 1.0) > 1e-3:                                   # smooth S-curve, mid-grey fixed
             k = 6.0 * (contrasto - 1.0)
             if k > 0:
@@ -302,7 +362,21 @@ class AlchemicaBiancoNero:
                 g = (torch.sigmoid((g - 0.5) * k * 2) - s0) / (s1 - s0)
             else:
                 g = 0.5 + (g - 0.5) * contrasto
+        lato = min(g.shape[1], g.shape[2])
+        if abs(chiarezza) > 1e-3 and lato >= 16:                          # local contrast, gentle on the extremes
+            base = self._sfoca(g, max(2.0, lato / 60))
+            g = (g + chiarezza * (g - base) * (1 - (2 * g - 1) ** 2).clamp(min=0.15)).clamp(0, 1)
         g = (g + luminosita).clamp(0, 1)
+        if nitidezza > 1e-3 and lato >= 8:                                # unsharp mask, no halo beyond 0..1
+            g = (g + nitidezza * (g - self._sfoca(g, float(raggio_nitidezza)))).clamp(0, 1)
+        if abs(vignettatura) > 1e-3:                                      # soft oval, follows the frame shape
+            H, W = g.shape[1], g.shape[2]
+            yy = torch.linspace(-1, 1, H, dtype=g.dtype, device=g.device).view(1, H, 1, 1)
+            xx = torch.linspace(-1, 1, W, dtype=g.dtype, device=g.device).view(1, 1, W, 1)
+            d = ((xx ** 2 + yy ** 2) / 2).sqrt()                          # 0 centre, 1 corners
+            v = ((d - 0.35) / 0.65).clamp(0, 1) ** 2
+            g = (g * (1 - 0.6 * vignettatura * v) if vignettatura > 0 else g + (1 - g) * (-0.6 * vignettatura) * v)
+            g = g.clamp(0, 1)
         if grana > 0:
             gen = torch.Generator(device="cpu").manual_seed(0)
             n = torch.randn(g.shape, generator=gen).to(g)

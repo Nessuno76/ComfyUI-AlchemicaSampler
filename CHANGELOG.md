@@ -1,6 +1,71 @@
 # ⚗ Changelog
 
-## Unreleased
+## 1.1.1 — 2026-11-17
+
+### New · Two starter workflows for Krea 2
+- **`ALCHEMICA_T2I`**: Load Krea 2 → LoRA Stack+ → Prompt → KSampler Flex → Save, with the framing and look presets at the bottom of the Prompt and the Prompt in compact view. Write an idea, press *Queue*.
+- **`ALCHEMICA_I2I`**: one photo in, the improved photo out with a before / after slider. Simple in front (photo, what to do, prompt), complete in the groups: mask to change only a zone, LoRA Stack+, Black and White, and a SeedVR2 upscale group that is bypassed until you enable it.
+- Both say it plainly: the Alchemica recipe gives a *different* picture from ComfyUI's KSampler, not a better one by default. The note in each workflow shows how to switch the same node to standard sampling.
+
+### Fix · Framing filter kept the rest of the sentence
+- With a chest-up or closer shot, "She wears a red leather jacket over a dark top and blue jeans" lost the jacket along with the jeans. Now only the part that names what the frame cuts away is removed.
+
+### Fix · LLM negative in a loop
+- At creativity 0 the text encoder could loop in the negative ("soft light, soft skin, soft jeans…", 80+ items). The negative now stops where a loop starts and never takes more than 24 items from the LLM.
+
+### Fix · Negative against a written text
+- When the prompt asks for a text in quotes ("a sign reading "OPEN""), ⚗ Prompt drops `text`, `letters`, `signature`… from the negative: with a real cfg they push against the very writing asked for. `watermark` stays.
+
+### Fix · Calibration with a negative
+- ⚗ Alchemica Calibration has an optional `negative` input. Connect the negative you generate with when cfg is above 1. Without it, the measure runs against an all-zero negative, as before, and the report warns when cfg is above 1.
+
+### New · LoRA A/B (with / without LoRA)
+- ⚗ Alchemica LoRA A/B makes the same photo twice in one run, with the same seed, prompt and settings: once with the LoRAs and once without. It shows the two photos in the before / after slider of ⚗ Compare, and returns both images and a side-by-side strip.
+- It has the same widgets as ⚗ KSampler Flex and goes where the sampler was. Connect it after the LoRA Stack+. If `model_no_lora` is not connected, the node takes the LoRAs off a copy of the model by itself. `positive_no_lora` (optional) gives the run without LoRAs its own prompt.
+- Two switches write the LoRAs on the photos: `write_lora` (the names) and `write_strength` (the strength, plus the text-encoder strength when it differs). The text is white on a dark box. You choose the corner (`label_position`) and the height (`label_size`, in % of the photo). The photo without LoRAs says "no LoRA". The text goes on the images that leave the node too, so a saved photo keeps it.
+- ⚗ LoRA Stack+ now leaves the names and strengths of its active LoRAs on the model (`model_options['alchemica_loras']`). With another LoRA loader the names are not known: the photo says how many layers the LoRAs patched.
+
+### New · LoRA Stack+ arrows
+- Each row of ⚗ Alchemica LoRA Stack+ has ▲ ▼ beside the name: they load the previous / next LoRA of the list (same order as the picker) without opening it. The new LoRA starts from its recommended strength and trigger words, as when it is picked from the list.
+
+### New · Black and White finishing
+- ⚗ Black and White has seven new darkroom controls: auto levels (full blacks and whites), shadows, highlights, clarity (local contrast), sharpness with its radius (unsharp mask, applied before the grain) and vignette. They come after the old controls, so saved workflows keep their values, and at 0 / off the result is identical to before. Still pure pixel maths: about 0.5 s on a 9 MP photo.
+- The KREA2_BIANCO_NERO workflow starts with a gentle finish (auto levels, shadows +0.15, highlights −0.15, clarity 0.3, sharpness 0.4, vignette 0.2) and its note explains each control.
+
+### Fix · Face Blend person text
+- When the text encoder refused to translate the person text ("I'm sorry, but I can't translate that"), the refusal was used as the translation and the text weighed 0%. The node now retries with the answer already started, and drops the translation if it is still refused.
+- A hair or eye colour written in the person text ("capelli castano ramati", "occhi verdi") is now always kept as a stated trait. Before, when the translation and the trait sheet used different words for the colour (brown / auburn), the colour was dropped and the average of the photos came back.
+
+### ⚗ Face Blend from text · Fallback
+
+- **⚗ Face Blend · text as a source**: photos are now optional (0-6) and `person_text` describes the person in
+  words (Italian or English); in the guide it is `testo` (`capelli = 1:50 testo:50`). With text only, the traits it
+  does not name are invented, a different face per `variation`. With photos, the traits the text names come from
+  the text (marked `(text)` in the report) and the photos fill the others; `text_wins` off blends the text like one
+  more photo by `text_weight`; `text_weight` 0 ignores the text.
+- **⚗ Fallback** computes `otherwise` only when `first` does not arrive (same result, the useless branch is
+  skipped): a chosen front photo no longer generates a new front for nothing.
+### ⚗ Footwear Views (LoRA dataset, Qwen-Image 2.1)
+
+- **⚗ Footwear Views** (`AlchemicaFootwearViews`): from ONE photo of any women's shoe (pumps, sandals, boots,
+  sneakers...), the views a footwear LoRA needs: 5 product views with the Multiple-Angles v2 LoRA (profile, 3/4 front
+  from both sides, front, back), the pair and a close-up with a plain Qwen-Image 2.1 edit, and 3 worn shots (legs in
+  profile, full body, seated; angle LoRA at 0). Product views show the shoes empty, never on cut-off feet, and every
+  prompt asks for a real photograph, not a render. The outputs are lists, so one Run generates them all; `guide`
+  explains which photos the dataset needs. Workflow: `ALCHEMICA 1.1 · SCARPE · VISTE PER LORA (Qwen 2.1).json`.
+  Elevated, back-quarter and left side views were dropped: on strappy shoes they tangled the straps or did not turn.
+
+### ⚗ Camera Angle 2.1 (Qwen-Image 2.1)
+
+- **⚗ Camera Angle 2.1** (`AlchemicaCameraAngle21`): camera view for Qwen-Image 2.1 with the Multiple-Angles v2 LoRA
+  (akhaliq): 12 azimuths in 30° steps, 4 elevations (eye-level, elevated, high-angle, top-down), optional close-up.
+  `keep_scene` (on by default) adds a sentence that keeps the photo's background and light: the LoRA is trained on
+  objects on a grey floor and otherwise replaces the background with a grey studio. `extra` adds free edits in the
+  same pass (clothes or objects from `<image2>`…, light, background), also without a new view. Outputs `prompt`,
+  `change`, `label` and `lora_strength` (0 when there is no new view, so the LoRA does not touch pure edits).
+- `angle_strength` (default 0.6): at 1.0 the angle LoRA turned a close-up photo (feet on a pavement) into a 3D product
+  render on a grey floor even with the scene sentence; 0.6 keeps real photos real and still turns full figures to
+  profile and back. The scene sentence now also says "a real photograph, not a 3D render or illustration".
 
 ### ⚗ Prompt · framing & look
 
@@ -54,6 +119,22 @@
   reliable profile of the same checkpoint (before, a 1-sample profile with the same LoRA stack could win over a
   15-sample one). The Calibration node always runs (no ComfyUI cache), and a repeated prompt + seed is measured with a
   new seed, so every queued run adds a real sample.
+- **Calibration: same file name, new weights.** When an author re-uploads a fixed model with the same file name,
+  'accumulate' no longer averages its samples with the old model's: the weights fingerprint changed, so the old profile
+  is moved to `profili/archivio` and the calibration starts from zero (the report says so).
+- **⚗ Camera Angle + ⚗ Switch (new nodes).** Camera Angle picks one of the 96 poses of the Qwen-Image-Edit-2511
+  Multiple-Angles LoRA (8 azimuths, 4 elevations, 3 distances) and writes its prompt; '(original view)' = no change.
+  Switch is lazy: the branch that is not chosen is never computed, so an unused new-view branch costs nothing.
+- **⚗ Head Crop (new node).** Crops a photo to hair + face, cutting just above the end of the chin, and gives the
+  same box as a mask. For an identity photo (e.g. Krea 2 Identity Edit): its clothes no longer pass into the result
+  (a turtleneck of the identity photo appeared in every run, whatever the instruction said) and the measured face
+  similarity went up (0.51 -> 0.60). Inverted, the mask lets a later redraw leave the new face alone.
+- **⚗ Fallback (new node).** Passes 'first' when it arrives, otherwise 'otherwise': an optional section of a workflow
+  can be bypassed (Ctrl+B or a groups panel) and the workflow falls back to its normal path by itself.
+- **⚗ Load Image Folder (new node).** One photo of a folder per run, sorted by name; **▶ queue the whole folder**
+  queues one run per photo, so a whole folder is upscaled / retouched with one click. The `name` output keeps the
+  file name of each photo for the Save nodes. Empty folder = the `image` input passes through (single photo).
+- **⚗ Prompt `phrase` is optional:** a workflow queued from a page loaded before the update still runs.
 - **⚗ Prompt: opening phrases.** New `phrase` menu: a sentence put in front of every prompt, as some fine-tune
   authors recommend (e.g. "This is a casual, low-quality photo" for a model trained on amateur photos).
   `(auto from model)` picks the phrase whose `match` words are in the checkpoint file name, nothing if none matches.
@@ -67,6 +148,9 @@
   ➕ Add LoRA. Each row now has its own name, every change repaints the rows, the typed value has its own box
   (Enter / OK confirms, Esc cancels: also in the classic interface) and the widgets are kept across rebuilds.
   Tested with real clicks and keys in both interfaces: type a strength + Enter, on/off, arrows, pick, ✕, ➕.
+  2026-10-24: with the right 'Parameters' panel open, rows added after the 4th stayed on "click to choose a LoRA"
+  (Nodes 2.0 keeps one repaint hook per widget and the panel took it): every view of a row now repaints. Tested
+  from 4 to 7 rows in both interfaces.
 - **Nodes 2.0: options that hide.** ⚗ Prompt and ⚗ KSampler Flex hide their unused options in Nodes 2.0 too.
 - **⚗ Compare (new node).** Before / after slider that works in the classic interface and in Nodes 2.0 (ComfyUI's
   ImageCompare draws only in Nodes 2.0, rgthree's Image Comparer only in the classic one).
@@ -163,6 +247,10 @@
 
 ### Fixes
 
+- **Fix · empty ComfyUI interface with a disconnected network drive.** The `drive` list of **⚗ Alchemica Save Image (drive +
+  folder + workflow name)** (`AlchemicaSaveImagePath`) probed every letter with `os.path.exists`; a mapped network drive that is offline (a NAS
+  turned off) made it wait about 20 s on every `object_info`, long enough for the frontend to load blank. Mapped network
+  drives are now listed without being touched (a drive that is offline at run time is still reported by the node).
 - **Fix · checkpoint fingerprint v2.** `(auto)` could pick the profile of the wrong checkpoint: the 1.0 fingerprint
   read 8 weights that a fine-tune often leaves untouched (norms, modulation), so Krea 2 Turbo NVFP4 and a fine-tune of
   it got the same id. The new fingerprint (`w…`) samples the raw bytes of every weight, including the packed NVFP4 /
@@ -180,6 +268,10 @@
   two stages on by itself when a from-scratch image is wider than 2400 px (composition at half size, then
   refinement at full size) and says so in the report; `auto_two_stage: false` in the options turns it off. The Prompt
   adds negatives against a repeated subject for frames wider than 1.7:1, and the WILL APPLY box warns before the run.
+- **Fix · ⚗ Prompt put DETAIL and NEGATIVE into the scene.** Small Ollama models (e.g. a 1B) write the labels on
+  their own line without a colon (`SCENE`, new line, text). They were not recognised: the whole answer became the
+  scene, so detail words like *chest bare* and even the negative list ended up in the positive text, and the report
+  said *no DETAIL in the answer*. A label alone on its line is now recognised too.
 - **Fix · head and feet cropped in the automatic two stages.** When the wide-frame guard switched two stages on, the
   hand-off came from the profile (e.g. 0.88, measured on a 2:3 portrait): stage 1 stopped while the image was barely
   sketched and stage 2 re-noised the full 3136×1344 canvas so much that Krea 2 composed it again, zoomed in and cut
