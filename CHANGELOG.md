@@ -1,5 +1,20 @@
 # ⚗ Changelog
 
+## 1.1.3 — 2026-11-18
+
+### Fixed · ⚗ Prompt: broken bodies in wide frames
+- **`wide_frame` no longer fights a scene with two or more people.** 'one subject' wrote "only one person in the whole
+  picture" and added "second person, duplicated person, crowd" to the negative, which attention guidance (NAG) applies
+  even at cfg 1. With a couple in the text the model was pushed to remove the second figure: it came out as fragments
+  at the frame edge, and hands and legs melted into the other body. Now, when the scene describes more people (a
+  couple, a woman and a man, "he" and "she"), the sentence becomes "only the people described and no one else" and
+  only the negatives against clones stay. The report says which rule was used.
+- **The orientation written in the text wins over `aspect`.** A text ending with "Vertical 9:16 frame" on a 16:9
+  aspect made the model squeeze a vertical composition into a wide frame: stretched torsos, a giant leg in the
+  foreground. When the text asks for the other orientation (an explicit ratio such as 9:16, or "vertical / horizontal
+  frame"), the frame is turned (16:9 -> 9:16, or the text's own ratio) and the megapixels are kept. "portrait" alone
+  does not count (it is a kind of photo). With a latent connected its size is kept, as before.
+
 ## 1.1.2 — 2026-11-17
 
 ### Changed · A package that only talks to ComfyUI

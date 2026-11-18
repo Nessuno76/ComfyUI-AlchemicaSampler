@@ -404,6 +404,84 @@ def frase_larga(background_testo=""):
     return FRASE_LARGA.format(dove=dove)
 
 
+# a scene with two or more people (a couple, 'a man's hand' next to 'a woman'): the 'only one person' sentence and
+# the 'second person' negatives fought them, and NAG pushed the second figure out of the picture -> broken bodies,
+# limbs cut at the frame edge or melted into the other figure (2026-11-18)
+FRASE_LARGA_GRUPPO = ("only the people described and no one else; the {dove} continues across the full width on both "
+                      "sides of them, open space instead of other figures")
+NEG_LARGA_GRUPPO = "clones, identical twins, repeated figure"
+_CHI = (r"(?:man|woman|girl|boy|guy|lady|person|partner|lover|husband|wife|boyfriend|girlfriend|friend|"
+        r"stranger|model)")
+_PIU_PERSONE = re.compile(
+    r"\b(?:couple|threesome|group of|both of them|each other|one another|together with|"
+    r"(?:two|three|four|several) (?:people|persons|women|men|girls|boys|guys|friends|lovers|figures)|"
+    r"(?:another|second|other) " + _CHI + r"|with (?:a|an|her|his|the) " + _CHI + r")\b", re.I)
+_UNO = re.compile(r"\b(woman|man|girl|boy|guy|lady)(?:'s)?\b", re.I)
+_GENERE = {"woman": "f", "girl": "f", "lady": "f", "man": "m", "boy": "m", "guy": "m"}
+
+
+def piu_persone(testo):
+    """True if the text describes more than one person: plural / couple words, a woman AND a man, or 'he' and 'she'
+    in the same text."""
+    t = testo or ""
+    if _PIU_PERSONE.search(t):
+        return True
+    if len({_GENERE[m.group(1).lower()] for m in _UNO.finditer(t)}) > 1:
+        return True
+    return bool(re.search(r"\b(?:he|his|him)\b", t, re.I) and re.search(r"\b(?:she|her|hers)\b", t, re.I))
+
+
+def frase_larga_scena(background_testo="", gruppo=False):
+    """frase_larga for one subject, or its version for the people of the scene."""
+    if not gruppo:
+        return frase_larga(background_testo)
+    return FRASE_LARGA_GRUPPO.format(dove=frase_larga(background_testo).split("; the ")[1].split(" continues")[0])
+
+
+# ---------------------------------------------------------------- frame shape written in the text
+_RAPPORTO = re.compile(r"\b(\d{1,2})\s*:\s*(\d{1,2})\b")
+_ORIENTAMENTO = re.compile(
+    r"\b(vertical|horizontal|landscape|portrait|widescreen)\s+(?:\d{1,2}\s*:\s*\d{1,2}\s+)?(?:frame|format|"
+    r"orientation|aspect)\b|\b(?:frame|format|orientation)\s+is\s+(vertical|horizontal)\b|\b(widescreen)\b", re.I)
+_VERSO = {"vertical": "v", "portrait": "v", "horizontal": "h", "landscape": "h", "widescreen": "h"}
+
+
+def verso(aspect):
+    """'v' (taller than wide), 'h' (wider than tall) or 'q' (square) of an 'a:b' aspect."""
+    a, b = (int(x) for x in aspect.split(":"))
+    return "v" if b > a else "h" if a > b else "q"
+
+
+def formato_testo(testo, formati):
+    """The frame shape the text asks for ('... Vertical 9:16 frame.'). -> (aspect among `formati` or None,
+    orientation 'v'/'h' or None). Only an explicit ratio or 'vertical / horizontal frame|format|orientation':
+    'portrait' alone means a kind of photo, not a shape."""
+    t = testo or ""
+    rapp = None
+    for m in _RAPPORTO.finditer(t):
+        k = f"{int(m.group(1))}:{int(m.group(2))}"
+        if k in formati:
+            rapp = k
+            break
+    m = _ORIENTAMENTO.search(t)
+    ori = _VERSO[next(g for g in m.groups() if g).lower()] if m else None
+    if rapp and not ori:
+        ori = verso(rapp) if verso(rapp) != "q" else None
+    return rapp, ori
+
+
+def gira_formato(aspect, ori, rapp, formati):
+    """The aspect to use when the text asks for the other orientation: its own ratio if it gave one (and it agrees
+    with the orientation), else the chosen one turned (16:9 -> 9:16); 21:9 has no vertical twin -> 9:16."""
+    if rapp and (not ori or verso(rapp) == ori):
+        return rapp
+    a, b = aspect.split(":")
+    girato = f"{b}:{a}"
+    if girato in formati:
+        return girato
+    return "9:16" if ori == "v" else "16:9"
+
+
 def consiglio_corpo(frase, scena):
     """The same check as a tip, for the report when the anchor is not applied ('text only' mode)."""
     if _mostra_piedi(frase) and not _PARLA_DI_GAMBE.search(scena or ""):

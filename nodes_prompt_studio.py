@@ -139,7 +139,9 @@ class AlchemicaPromptStudio:
             "wide_frame": (WIDE, {"default": WIDE[0], "tooltip":
                            "Frames 16:9 and wider (19:9, 21:9) invite copies of the subject. 'one subject': the scene "
                            "says there is only one person and the background fills the sides, plus negatives against "
-                           "copies. 'free': nothing added (e.g. you want a group)"}),
+                           "copies. If the scene describes more than one person (a couple, a man and a woman), it asks for "
+                           "'only the people described' instead and keeps only the negatives against clones. "
+                           "'free': nothing added"}),
         }
         opt = {
             # 2026-10-23, OPTIONAL and the LAST widget (saved workflows match widget values by
@@ -253,6 +255,14 @@ class AlchemicaPromptStudio:
         # frame: a connected latent wins; then your explicit aspect / megapixels; '(from shot)' / 0 = the shot's
         if latent is None:
             aspect, megapixels, da, dm = inq.risolvi_formato(aspect, megapixels, preset if shot_lock else None)
+            # the text asks for the other orientation ('Vertical 9:16 frame' with aspect 16:9): the model would
+            # squeeze a vertical composition into a wide frame -> stretched bodies. The text wins.
+            rapp, ori = inq.formato_testo(src, ASPECTS)
+            if ori and inq.verso(aspect) != "q" and ori != inq.verso(aspect):
+                nuovo = inq.gira_formato(aspect, ori, rapp, ASPECTS)
+                rep.append(f"the text asks for a {'vertical' if ori == 'v' else 'horizontal'} frame"
+                           + (f" ({rapp})" if rapp else "") + f", aspect was {aspect}: frame turned to {nuovo}")
+                aspect, da = nuovo, "from your text"
             rep.append(f"frame {aspect} ({da}) · {megapixels:g} MP ({dm})")
         elif preset and shot_lock:
             rep.append("frame: a latent is connected, its size is kept")
@@ -293,7 +303,8 @@ class AlchemicaPromptStudio:
             stile = STYLES.get(style, "foto realistica")
             regole = "\n".join(x for x in ((instructions or "").strip(), inq.regola_llm(frase) if frase else "",
                                            inq.regola_look(look) if look else "",
-                                           "WIDE FRAME: " + inq.frase_larga((inq.BACKGROUNDS.get(background) or ("",))[0])
+                                           "WIDE FRAME: " + inq.frase_larga_scena(
+                                               (inq.BACKGROUNDS.get(background) or ("",))[0], inq.piu_persone(src))
                                            + "." if largo else "") if x)
             sistema = testo.sistema(stile, words, pelle, regole, modello=fam)
             utente = testo.utente(src, img is not None, come, testo.descrivi_formato(w, h))
@@ -371,13 +382,18 @@ class AlchemicaPromptStudio:
         if largo:
             # a wide frame invites copies of the subject (16:9 ... 21:9): one person, the place fills the sides.
             # Right after the framing sentence, where the composition is decided.
-            fl = inq.frase_larga((inq.BACKGROUNDS.get(background) or ("",))[0])
+            # more people described (a couple, a man's hand next to a woman): 'only one person' and 'second person'
+            # in the negatives (NAG uses them even at cfg 1) pushed the other figure out -> broken, melted bodies
+            gruppo = inq.piu_persone(sc + " " + (dett or ""))
+            fl = inq.frase_larga_scena((inq.BACKGROUNDS.get(background) or ("",))[0], gruppo)
             larga_comp = fl
             sc = (sc[:len(frase) + 1] + " " + fl[0].upper() + fl[1:] + "." + sc[len(frase) + 1:]) if frase and \
                 sc.lower().startswith(frase.lower()) else fl[0].upper() + fl[1:] + ". " + sc[:1].upper() + sc[1:]
-            neg = testo.unisci_negativo(neg, inq.NEG_LARGA)
-            neg_inq = testo.unisci_negativo(neg_inq, inq.NEG_LARGA)
-            rep.append(f"wide frame {w}x{h}: one subject, the background fills the width: {fl}")
+            neg_larga = inq.NEG_LARGA_GRUPPO if gruppo else inq.NEG_LARGA
+            neg = testo.unisci_negativo(neg, neg_larga)
+            neg_inq = testo.unisci_negativo(neg_inq, neg_larga)
+            rep.append(f"wide frame {w}x{h}: " + ("the scene describes more than one person: no 'one person' rule, "
+                       if gruppo else "one subject, ") + f"the background fills the width: {fl}")
 
         # 4) encode
         prompt = sc.rstrip().rstrip(".") + ". " + dett if dett else sc
