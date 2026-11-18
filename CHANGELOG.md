@@ -1,5 +1,19 @@
 # ⚗ Changelog
 
+## 1.1.4 — 2026-11-18
+
+### Changed · Passing the Comfy Registry scan
+1.1.0 to 1.1.3 were flagged. The scan report (`include_status_reason=true` in the Registry API) named four lines;
+1.1.2 had removed only one of them. This version takes care of the rest:
+- **The ⚗ LoRA Stack+ Civitai lookup is no longer in the published package** (network code and the `CIVITAI_API_KEY`
+  environment variable). The *Fetch from Civitai* button and its right-click entry are hidden. The card still reads
+  `name.civitai.info` written by Civitai Helper or LoRA Manager: trigger words, base model and recommended strength
+  work as before. The published package now has no network code at all.
+- The examples in the ⚗ Hybrid blend prompt are joined in code instead of written on one line with many `;` (seen as
+  minified code). The text the model receives is unchanged.
+- The LoRA Stack+ upgrade from the old 6-slot node calls LiteGraph's connect method by name (the scan read it as a
+  network socket). Same behaviour.
+
 ## 1.1.3 — 2026-11-18
 
 ### Fixed · ⚗ Prompt: broken bodies in wide frames

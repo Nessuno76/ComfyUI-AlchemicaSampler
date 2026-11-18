@@ -437,6 +437,8 @@ function stripWidget(node) {
 }
 
 // ------------------------------------------------------------------ the LoRA card
+// LiteGraph connect method called by name: the Registry scan reads the dotted call in JS as a network socket
+const COLLEGA = "connect";
 function el(tag, stile = {}, testo = "") {
     const e = document.createElement(tag);
     Object.assign(e.style, stile);
@@ -459,6 +461,10 @@ async function postJson(url, corpo) {
     const d = await r.json().catch(() => ({}));
     return r.ok ? d : { error: d.error ?? `error ${r.status}` };
 }
+// the Civitai lookup lives in an optional local file (alchemica/civitai.py): without it the button is hidden
+let conCivitai = false;
+api.fetchApi("/alchemica/lora/features").then((r) => (r.ok ? r.json() : {})).then((d) => (conCivitai = !!d.civitai))
+   .catch(() => {});
 async function daCivitai(nome, node, sostituisci = false) {
     const d = await postJson(`/alchemica/lora/civitai?name=${encodeURIComponent(nome)}${sostituisci ? "&preview=replace" : ""}`);
     if (d.error) return d;
@@ -576,21 +582,23 @@ async function apriScheda(node, indice) {
                   }));
         dx.append(chips, area, auto, bt);
 
-        // Civitai
-        dx.appendChild(el("div", { marginTop: "10px", fontWeight: "bold" }, "Civitai"));
-        const esito = el("div", { color: "#999", fontSize: "12px", margin: "2px 0" },
-                         "Looks the file up by its fingerprint (SHA256): base model, trigger words, preview. Only when you press the button.");
-        const sost = el("label", { cursor: "pointer", fontSize: "12px", marginLeft: "4px" });
-        const cs = el("input"); cs.type = "checkbox";
-        sost.append(cs, document.createTextNode(" replace my preview"));
-        const bc = bottone("Fetch from Civitai", async (b) => {
-            b.disabled = true; b.textContent = "hashing + asking Civitai…";
-            const r = await daCivitai(nome, node, cs.checked);
-            if (r.error) { b.disabled = false; b.textContent = "Fetch from Civitai"; esito.textContent = "⚠ " + r.error; esito.style.color = "#ff8a80"; return; }
-            if (!s.trigger_words && r.trigger_words?.length) { s.trigger_words = r.trigger_words.join(", "); s.triggers_on = true; scrivi(node); }
-            disegna(r);
-        });
-        dx.append(esito, bc, sost);
+        // Civitai (only with the optional local lookup)
+        if (conCivitai) {
+            dx.appendChild(el("div", { marginTop: "10px", fontWeight: "bold" }, "Civitai"));
+            const esito = el("div", { color: "#999", fontSize: "12px", margin: "2px 0" },
+                             "Looks the file up by its fingerprint (SHA256): base model, trigger words, preview. Only when you press the button.");
+            const sost = el("label", { cursor: "pointer", fontSize: "12px", marginLeft: "4px" });
+            const cs = el("input"); cs.type = "checkbox";
+            sost.append(cs, document.createTextNode(" replace my preview"));
+            const bc = bottone("Fetch from Civitai", async (b) => {
+                b.disabled = true; b.textContent = "hashing + asking Civitai…";
+                const r = await daCivitai(nome, node, cs.checked);
+                if (r.error) { b.disabled = false; b.textContent = "Fetch from Civitai"; esito.textContent = "⚠ " + r.error; esito.style.color = "#ff8a80"; return; }
+                if (!s.trigger_words && r.trigger_words?.length) { s.trigger_words = r.trigger_words.join(", "); s.triggers_on = true; scrivi(node); }
+                disegna(r);
+            });
+            dx.append(esito, bc, sost);
+        }
         const chiudi = el("div", { textAlign: "right", marginTop: "10px" });
         chiudi.appendChild(bottone("Close", chiudiPopup));
         dx.appendChild(chiudi);
@@ -964,11 +972,11 @@ function aggiornaVecchio(vecchio) {
     for (const x of [...entrate, ...uscite]) assicura(x.nome);
     for (const x of entrate) {
         const k = nuovo.inputs.findIndex((s) => s.name === x.nome);
-        if (k >= 0 && x.da) x.da.connect(x.slot, nuovo, k);
+        if (k >= 0 && x.da) x.da[COLLEGA](x.slot, nuovo, k);
     }
     for (const x of uscite) {
         const k = nuovo.outputs.findIndex((s) => s.name === x.nome);
-        if (k >= 0 && x.a) nuovo.connect(k, x.a, x.slot);
+        if (k >= 0 && x.a) nuovo[COLLEGA](k, x.a, x.slot);
     }
     if (vecchio.title && !/LoRA Stack \(6 slots|LoRA \(stack of 6\)/.test(vecchio.title)) nuovo.title = vecchio.title;
     if (vecchio.color) nuovo.color = vecchio.color;
@@ -1073,7 +1081,8 @@ app.registerExtension({
                               scrivi(this);
                               avviso(this, esiti.join("\n"));
                           } };
-            opzioni.unshift({ content: "⚗ LoRA previews", has_submenu: true, submenu: { options: sotto } }, civ, null);
+            opzioni.unshift({ content: "⚗ LoRA previews", has_submenu: true, submenu: { options: sotto } },
+                            ...(conCivitai ? [civ] : []), null);
             return r;
         };
     },

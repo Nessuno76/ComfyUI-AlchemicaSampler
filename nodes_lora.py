@@ -29,12 +29,10 @@
   ⚗ Prompt node reads them and adds the missing ones in front of the prompt. No extra wire.
 * Active LoRAs: names and strengths go on the MODEL too (model_options['alchemica_loras']); ⚗ LoRA A/B writes them
   on the photo.
-* Civitai (only when you press the button): the SHA256 of the file is looked up on civitai.com
-  (/api/v1/model-versions/by-hash); the answer is saved as name.civitai.info and, if missing, the first safe preview
-  image as name.preview.png. Optional API key in the environment variable CIVITAI_API_KEY.
+* Civitai: the node READS name.civitai.info (written e.g. by Civitai Helper or LoRA Manager). The online lookup
+  button lives in the optional local file alchemica/civitai.py, not in the published package (no network code).
 """
 
-import asyncio
 import hashlib
 import io
 import json
@@ -604,52 +602,19 @@ def _registra_percorsi():
             return web.json_response({"error": str(ex)}, status=400)
         return web.json_response({"ok": True, **info_lora(nome)})
 
-    @rotte.post("/alchemica/lora/civitai")
-    async def _civitai(request):
-        """Looks the file up on Civitai by its SHA256 (only when the user presses the button)."""
-        import aiohttp
-        from PIL import Image
-        nome = request.query.get("name", "")
-        forza_anteprima = request.query.get("preview") == "replace"
-        p = _percorso(nome)
-        if not p:
-            return web.json_response({"error": f"LoRA not found: {nome}"}, status=404)
-        sha = await asyncio.get_running_loop().run_in_executor(None, sha256_file, p)
-        intest = {"User-Agent": "ComfyUI-AlchemicaSampler"}
-        if os.environ.get("CIVITAI_API_KEY"):
-            intest["Authorization"] = "Bearer " + os.environ["CIVITAI_API_KEY"]
-        try:
-            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=90), trust_env=True) as sess:
-                async with sess.get(f"https://civitai.com/api/v1/model-versions/by-hash/{sha}", headers=intest) as r:
-                    if r.status == 404:
-                        return web.json_response({"error": "this file is not on Civitai (no file with its hash)",
-                                                  "sha256": sha}, status=404)
-                    if r.status != 200:
-                        return web.json_response({"error": f"Civitai answered {r.status}"}, status=502)
-                    d = await r.json()
-                base = os.path.splitext(p)[0]
-                with open(base + ".civitai.info", "w", encoding="utf-8") as f:
-                    json.dump(d, f, indent=4, ensure_ascii=False)
-                salvata = False
-                if forza_anteprima or not trova_anteprima(p):
-                    immagini = [x for x in d.get("images") or [] if x.get("url") and x.get("type", "image") == "image"]
-                    immagini.sort(key=lambda x: x.get("nsfwLevel") or 0)       # the safest image first
-                    for im in immagini[:3]:
-                        async with sess.get(im["url"], headers=intest) as ri:
-                            if ri.status != 200:
-                                continue
-                            dati = await ri.read()
-                        try:
-                            salva_anteprima(nome, Image.open(io.BytesIO(dati)))
-                            salvata = True
-                            break
-                        except OSError:
-                            continue
-        except (aiohttp.ClientError, asyncio.TimeoutError) as ex:
-            return web.json_response({"error": f"Civitai not reachable: {ex}"}, status=502)
-        print(f"[Alchemica LoRA Stack+] Civitai: {nome} -> {(d.get('model') or {}).get('name', '?')}"
-              + (" (preview saved)" if salvata else ""))
-        return web.json_response({"ok": True, "preview_saved": salvata, **info_lora(nome)})
+    civitai = None
+    try:
+        from .alchemica import civitai                  # optional local file, not in the published package
+    except ImportError:
+        pass
+    if civitai is not None:
+        import sys
+        civitai.registra(rotte, web, sys.modules[__name__])
+
+    @rotte.get("/alchemica/lora/features")
+    async def _funzioni(request):
+        """What this install offers: the interface hides the Civitai button without alchemica/civitai.py."""
+        return web.json_response({"civitai": civitai is not None})
 
 
 _registra_percorsi()

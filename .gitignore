@@ -20,3 +20,5 @@ web/manichino_panel_codex.js
 # 1.1.2: no network code in the published package (local only)
 alchemica/ollama.py
 tools/make_shot_thumbs.py
+# 1.1.4: Civitai lookup too (the Registry scan flags network code and environment reads)
+alchemica/civitai.py

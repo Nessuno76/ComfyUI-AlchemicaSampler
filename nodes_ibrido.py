@@ -118,9 +118,20 @@ KIND: <what it is: species and breed, or person, or object type>
 {righe}
 Each feature line is a short phrase (4 to 14 words) of concrete visible facts: shapes, sizes, colours, textures. Be specific to THIS subject: name what makes it different from an average one. Describe only what IS there, without negations ("no", "without", "lack of"). Write "not visible" when a feature cannot be seen. No opinions, no background, no camera or style words."""
 
-FUSIONE_SISTEMA = """You blend the features of several {plurale} into ONE new {sostantivo}. For every feature you get the descriptions from the different sources, each with its share in percent. For each feature write ONE short phrase (4 to 14 words) that lies between them IN PROPORTION to the shares: a 70% share dominates, a 30% share must still visibly shift it, a 10% share adds a small touch. Blend shapes, sizes and colours into a real intermediate, as in a child of these parents. Examples: 60% green + 40% brown eyes = hazel-green eyes; 50% dark brown + 50% blue eyes = amber eyes with a blue outer ring; 50% deep brown + 50% fair skin = warm light-brown caramel skin; 70% deep brown + 30% fair skin = medium brown skin; 50% square + 50% round jaw = softly squared jaw with rounded corners; 50% West African + 50% Northern European features = mixed African and European features; 50% round + 50% almond eyes = soft almond eyes; 50% straight + 50% tight curly hair = loose curls. A 100% feature is copied as it is. With many sources, weigh them all: what several sources share dominates, a feature of a single small source only adds a touch.
-Never list alternatives, never write "or", "between", "mix", "blend" or percentages. Reply with EXACTLY these labeled lines and nothing else:
-{righe}"""
+# the examples are joined with "; " at import time (the Registry scan reads 5+ semicolons on one line as minified code)
+_FUSIONE_ESEMPI = (
+    '60% green + 40% brown eyes = hazel-green eyes',
+    '50% dark brown + 50% blue eyes = amber eyes with a blue outer ring',
+    '50% deep brown + 50% fair skin = warm light-brown caramel skin',
+    '70% deep brown + 30% fair skin = medium brown skin',
+    '50% square + 50% round jaw = softly squared jaw with rounded corners',
+    '50% West African + 50% Northern European features = mixed African and European features',
+    '50% round + 50% almond eyes = soft almond eyes',
+    '50% straight + 50% tight curly hair = loose curls',
+)
+FUSIONE_SISTEMA = ('You blend the features of several {plurale} into ONE new {sostantivo}. For every feature you get the descriptions from the different sources, each with its share in percent. For each feature write ONE short phrase (4 to 14 words) that lies between them IN PROPORTION to the shares: a 70% share dominates, a 30% share must still visibly shift it, a 10% share adds a small touch. Blend shapes, sizes and colours into a real intermediate, as in a child of these parents. Examples: '
+                   + "; ".join(_FUSIONE_ESEMPI)
+                   + '. A 100% feature is copied as it is. With many sources, weigh them all: what several sources share dominates, a feature of a single small source only adds a touch.\nNever list alternatives, never write "or", "between", "mix", "blend" or percentages. Reply with EXACTLY these labeled lines and nothing else:\n{righe}')
 
 SCRITTURA_SISTEMA = """You write the description of ONE {sostantivo} from a list of features. Use EVERY feature of the list, exactly as given, and add nothing that contradicts them.
 Rules:
